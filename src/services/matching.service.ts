@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { sql, type SQL } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   cosineDistanceToDisplayScore,
@@ -9,6 +9,7 @@ import { toPublicPerson, type FriendshipUiStatus, type PublicPerson } from "@/li
 import { getFriendshipStatusMap } from "@/services/friendship.service";
 
 export type DiscoveryKind = "you_might_like" | "might_like_you" | "mutual";
+export type UbcFilter = "all" | "ubc_students" | "ubc_verified";
 
 export type DiscoveryResult = PublicPerson & {
   score: number;
@@ -42,6 +43,17 @@ function extractRows(result: unknown): RawMatchRow[] {
 function pageSize() {
   const raw = Number(process.env.DISCOVERY_PAGE_SIZE || 20);
   return Number.isFinite(raw) && raw > 0 ? Math.min(raw, 50) : 20;
+}
+
+function ubcFilterSql(filter: UbcFilter): SQL {
+  if (filter === "ubc_verified") {
+    return sql`AND u.is_ubc_verified = true`;
+  }
+  if (filter === "ubc_students") {
+    // Claimed UBC students (includes verified)
+    return sql`AND (u.is_ubc_student_claim = true OR u.is_ubc_verified = true)`;
+  }
+  return sql``;
 }
 
 async function hydrateResults(
@@ -83,8 +95,13 @@ async function hydrateResults(
   });
 }
 
-export async function getPeopleYouMightLike(currentUserId: string, offset = 0) {
+export async function getPeopleYouMightLike(
+  currentUserId: string,
+  offset = 0,
+  ubcFilter: UbcFilter = "all",
+) {
   const limit = pageSize();
+  const ubcClause = ubcFilterSql(ubcFilter);
   const result = await db.execute(sql`
     WITH me AS (
       SELECT seeking_embedding, embedding_model
@@ -118,6 +135,7 @@ export async function getPeopleYouMightLike(currentUserId: string, offset = 0) {
         WHERE (b.blocker_id = ${currentUserId}::uuid AND b.blocked_id = u.id)
            OR (b.blocker_id = u.id AND b.blocked_id = ${currentUserId}::uuid)
       )
+      ${ubcClause}
     ORDER BY distance ASC
     LIMIT ${limit}
     OFFSET ${offset}
@@ -129,8 +147,13 @@ export async function getPeopleYouMightLike(currentUserId: string, offset = 0) {
   }));
 }
 
-export async function getPeopleWhoMightLikeYou(currentUserId: string, offset = 0) {
+export async function getPeopleWhoMightLikeYou(
+  currentUserId: string,
+  offset = 0,
+  ubcFilter: UbcFilter = "all",
+) {
   const limit = pageSize();
+  const ubcClause = ubcFilterSql(ubcFilter);
   const result = await db.execute(sql`
     WITH me AS (
       SELECT self_embedding, embedding_model
@@ -164,6 +187,7 @@ export async function getPeopleWhoMightLikeYou(currentUserId: string, offset = 0
         WHERE (b.blocker_id = ${currentUserId}::uuid AND b.blocked_id = u.id)
            OR (b.blocker_id = u.id AND b.blocked_id = ${currentUserId}::uuid)
       )
+      ${ubcClause}
     ORDER BY distance ASC
     LIMIT ${limit}
     OFFSET ${offset}
@@ -175,8 +199,13 @@ export async function getPeopleWhoMightLikeYou(currentUserId: string, offset = 0
   }));
 }
 
-export async function getMutualConnections(currentUserId: string, offset = 0) {
+export async function getMutualConnections(
+  currentUserId: string,
+  offset = 0,
+  ubcFilter: UbcFilter = "all",
+) {
   const limit = pageSize();
+  const ubcClause = ubcFilterSql(ubcFilter);
   const result = await db.execute(sql`
     WITH me AS (
       SELECT self_embedding, seeking_embedding, embedding_model
@@ -213,6 +242,7 @@ export async function getMutualConnections(currentUserId: string, offset = 0) {
         WHERE (b.blocker_id = ${currentUserId}::uuid AND b.blocked_id = u.id)
            OR (b.blocker_id = u.id AND b.blocked_id = ${currentUserId}::uuid)
       )
+      ${ubcClause}
     ORDER BY
       CASE
         WHEN (
@@ -245,14 +275,19 @@ export async function getMutualConnections(currentUserId: string, offset = 0) {
   });
 }
 
-export async function getDiscovery(kind: DiscoveryKind, currentUserId: string, offset = 0) {
+export async function getDiscovery(
+  kind: DiscoveryKind,
+  currentUserId: string,
+  offset = 0,
+  ubcFilter: UbcFilter = "all",
+) {
   switch (kind) {
     case "you_might_like":
-      return getPeopleYouMightLike(currentUserId, offset);
+      return getPeopleYouMightLike(currentUserId, offset, ubcFilter);
     case "might_like_you":
-      return getPeopleWhoMightLikeYou(currentUserId, offset);
+      return getPeopleWhoMightLikeYou(currentUserId, offset, ubcFilter);
     case "mutual":
-      return getMutualConnections(currentUserId, offset);
+      return getMutualConnections(currentUserId, offset, ubcFilter);
     default:
       throw new Error("Unknown discovery kind");
   }

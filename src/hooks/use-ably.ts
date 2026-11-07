@@ -20,30 +20,38 @@ export function useAblyChannel(
 
     let channel: Ably.RealtimeChannel | null = null;
 
-    const client = new Ably.Realtime({
-      authCallback: async (_tokenParams, callback) => {
-        try {
-          const { tokenRequest } = await clientApi<{ tokenRequest: Ably.TokenRequest }>(
-            "/api/ably/token",
-          );
-          callback(null, tokenRequest);
-        } catch (err) {
-          callback(err as Ably.ErrorInfo, null);
-        }
-      },
-    });
+    let client: Ably.Realtime | null = null;
 
-    client.connection.on("connected", () => setConnected(true));
-    client.connection.on("disconnected", () => setConnected(false));
+    try {
+      client = new Ably.Realtime({
+        authCallback: async (_tokenParams, callback) => {
+          try {
+            const { tokenRequest } = await clientApi<{ tokenRequest: Ably.TokenRequest }>(
+              "/api/ably/token",
+            );
+            callback(null, tokenRequest);
+          } catch (err) {
+            callback(err as Ably.ErrorInfo, null);
+          }
+        },
+      });
 
-    channel = client.channels.get(channelName);
-    channel.subscribe((msg) => {
-      onMessageRef.current?.(msg.name ?? "message", msg.data);
-    });
+      client.connection.on("connected", () => setConnected(true));
+      client.connection.on("failed", () => setConnected(false));
+      client.connection.on("disconnected", () => setConnected(false));
+
+      channel = client.channels.get(channelName);
+      channel.subscribe((msg) => {
+        onMessageRef.current?.(msg.name ?? "message", msg.data);
+      });
+    } catch {
+      // Realtime is best-effort; messages/notifications still persist in Neon.
+      setConnected(false);
+    }
 
     return () => {
       channel?.unsubscribe();
-      client.close();
+      client?.close();
       setConnected(false);
     };
   }, [channelName]);

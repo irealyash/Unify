@@ -8,14 +8,14 @@ import { ThemeProvider } from "@/components/providers/theme-provider";
 
 const clerkAppearance = {
   variables: {
-    colorPrimary: "#0F766E",
+    colorPrimary: "#0a0a0a",
     borderRadius: "0.75rem",
   },
   elements: {
     rootBox: "mx-auto w-full",
-    card: "shadow-md border border-[#e0ddd8] bg-white",
+    card: "shadow-md border border-[#e5e5e5] bg-white",
     headerTitle: "font-semibold",
-    socialButtonsBlockButton: "border border-[#e0ddd8]",
+    socialButtonsBlockButton: "border border-[#e5e5e5]",
   },
 };
 

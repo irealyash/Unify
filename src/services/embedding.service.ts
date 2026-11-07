@@ -49,6 +49,7 @@ export async function regenerateEmbedding(userId: string, side: EmbeddingSide) {
 }
 
 export async function regenerateBothEmbeddings(userId: string) {
-  await regenerateEmbedding(userId, "self");
-  await regenerateEmbedding(userId, "seeking");
+  const self = await regenerateEmbedding(userId, "self");
+  const seeking = await regenerateEmbedding(userId, "seeking");
+  return { self, seeking };
 }

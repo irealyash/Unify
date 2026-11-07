@@ -19,12 +19,15 @@ export const useUiStore = create<UiStore>()(
     (set) => ({
       aiStudioOpen: true,
       aiStudioTab: "self",
-      theme: "system",
+      theme: "dark",
       setAiStudioOpen: (open) => set({ aiStudioOpen: open }),
       setAiStudioTab: (tab) => set({ aiStudioTab: tab }),
       toggleAiStudio: () => set((s) => ({ aiStudioOpen: !s.aiStudioOpen })),
       setTheme: (theme) => set({ theme }),
     }),
-    { name: "mutual-ui", partialize: (s) => ({ theme: s.theme, aiStudioOpen: s.aiStudioOpen }) },
+    {
+      name: "mutual-ui-v2",
+      partialize: (s) => ({ theme: s.theme, aiStudioOpen: s.aiStudioOpen }),
+    },
   ),
 );

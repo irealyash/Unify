@@ -93,7 +93,7 @@ export function PersonCard({ person, showMutualBreakdown, className }: PersonCar
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href={`/profile/${person.username}`}
-              className="font-display text-base font-semibold hover:text-accent"
+              className="font-display text-base font-semibold hover:opacity-70"
             >
               {person.displayName || person.username}
             </Link>
@@ -102,7 +102,7 @@ export function PersonCard({ person, showMutualBreakdown, className }: PersonCar
           <p className="text-sm text-muted-foreground">@{person.username}</p>
         </div>
         <div className="text-right">
-          <p className="font-display text-lg font-semibold text-accent">{person.score}%</p>
+          <p className="font-display text-lg font-semibold tabular-nums">{person.score}%</p>
           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">match</p>
           {showMutualBreakdown && person.scoreAB != null && person.scoreBA != null && (
             <p className="mt-1 text-[10px] text-muted-foreground">

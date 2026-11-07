@@ -31,29 +31,27 @@ export function AppSidebar() {
   const { data: notifData } = useNotifications();
   const theme = useUiStore((s) => s.theme);
   const setTheme = useUiStore((s) => s.setTheme);
-
   const unread = notifData?.unreadCount ?? 0;
 
   const cycleTheme = () => {
-    const next = theme === "light" ? "dark" : theme === "dark" ? "system" : "light";
-    setTheme(next);
+    setTheme(theme === "dark" ? "light" : "dark");
   };
 
   return (
     <aside className="flex w-[4.5rem] shrink-0 flex-col items-center border-r border-sidebar-border bg-sidebar py-5 lg:w-56 lg:items-stretch lg:px-3">
       <Link
         href="/discover"
-        className="mb-6 flex items-center justify-center gap-2 px-2 lg:justify-start"
+        className="mb-8 flex items-center justify-center gap-2.5 px-2 lg:justify-start"
       >
-        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-sm font-bold text-accent-foreground">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-foreground text-sm font-bold text-background">
           M
         </span>
-        <span className="hidden font-display text-lg font-semibold tracking-tight lg:inline">
+        <span className="hidden font-display text-[15px] font-semibold tracking-tight lg:inline">
           Mutual
         </span>
       </Link>
 
-      <nav className="flex flex-1 flex-col gap-1">
+      <nav className="flex flex-1 flex-col gap-0.5">
         {NAV.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`);
           const showBadge = href === "/notifications" && unread > 0;
@@ -62,16 +60,23 @@ export function AppSidebar() {
               key={href}
               href={href}
               className={cn(
-                "relative flex items-center justify-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:justify-start",
+                "relative flex items-center justify-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors lg:justify-start",
                 active
-                  ? "bg-sidebar-accent text-foreground"
-                  : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
+                  ? "bg-foreground text-background"
+                  : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground",
               )}
             >
-              <Icon className="h-5 w-5 shrink-0" />
-              <span className="hidden lg:inline">{label}</span>
+              <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.75} />
+              <span className="hidden font-medium lg:inline">{label}</span>
               {showBadge && (
-                <span className="absolute right-2 top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-semibold text-accent-foreground lg:static lg:ml-auto">
+                <span
+                  className={cn(
+                    "absolute right-2 top-2 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold lg:static lg:ml-auto",
+                    active
+                      ? "bg-background text-foreground"
+                      : "bg-foreground text-background",
+                  )}
+                >
                   {unread > 9 ? "9+" : unread}
                 </span>
               )}
@@ -80,7 +85,7 @@ export function AppSidebar() {
         })}
       </nav>
 
-      <Separator className="my-4" />
+      <Separator className="my-4 opacity-60" />
 
       <button
         type="button"
@@ -88,16 +93,12 @@ export function AppSidebar() {
         className="mb-3 flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground lg:justify-start"
         title={`Theme: ${theme}`}
       >
-        {theme === "dark" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+        {theme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
         <span className="hidden capitalize lg:inline">{theme}</span>
       </button>
 
       <div className="flex items-center justify-center gap-3 px-2 lg:justify-start">
-        <UserButton
-          appearance={{
-            elements: { avatarBox: "h-9 w-9" },
-          }}
-        />
+        <UserButton appearance={{ elements: { avatarBox: "h-8 w-8" } }} />
         <div className="hidden min-w-0 lg:block">
           <p className="truncate text-sm font-medium">
             {user?.fullName || user?.username || "You"}

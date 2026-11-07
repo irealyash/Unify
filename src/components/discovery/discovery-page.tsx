@@ -4,14 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import { AlertCircle, Users } from "lucide-react";
 import { DiscoveryTabs } from "@/components/discovery/discovery-tabs";
 import { PersonCard } from "@/components/discovery/person-card";
+import { UbcFilterSelect } from "@/components/discovery/ubc-filter";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDiscovery } from "@/hooks/use-discovery";
-import type { DiscoveryKind } from "@/types/api";
+import type { DiscoveryKind, UbcFilter } from "@/types/api";
 
 function PersonCardSkeleton() {
   return (
-    <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+    <div className="space-y-4 rounded-xl border border-border bg-card p-5">
       <div className="flex gap-3">
         <Skeleton className="h-12 w-12 rounded-full" />
         <div className="flex-1 space-y-2">
@@ -30,13 +31,34 @@ function PersonCardSkeleton() {
   );
 }
 
+function emptyCopy(ubcFilter: UbcFilter) {
+  if (ubcFilter === "ubc_verified") {
+    return {
+      title: "No UBC verified matches",
+      body: "No verified UBC students match this list yet. Try Everyone or UBC students.",
+    };
+  }
+  if (ubcFilter === "ubc_students") {
+    return {
+      title: "No UBC student matches",
+      body: "No UBC students match this list yet. Try Everyone, or refine your profile.",
+    };
+  }
+  return {
+    title: "No matches here yet",
+    body: "Refine your profile in AI Studio or check another tab as more people join.",
+  };
+}
+
 export function DiscoveryPage() {
   const [kind, setKind] = useState<DiscoveryKind>("mutual");
+  const [ubcFilter, setUbcFilter] = useState<UbcFilter>("all");
   const { data, isLoading, isError, error, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useDiscovery(kind);
+    useDiscovery(kind, ubcFilter);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
   const results = data?.pages.flatMap((p) => p.results) ?? [];
+  const empty = emptyCopy(ubcFilter);
 
   useEffect(() => {
     const el = loadMoreRef.current;
@@ -52,7 +74,7 @@ export function DiscoveryPage() {
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage, kind]);
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage, kind, ubcFilter]);
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8 lg:px-10">
@@ -61,9 +83,12 @@ export function DiscoveryPage() {
           Find your people.
         </h1>
         <p className="max-w-xl text-muted-foreground">
-          Reciprocal matching surfaces people who fit what you seek—and who seek someone like you.
+          Reciprocal matching from two embeddings: who you are, and who you&apos;re looking for.
         </p>
-        <DiscoveryTabs value={kind} onChange={setKind} className="mt-6" />
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <DiscoveryTabs value={kind} onChange={setKind} />
+          <UbcFilterSelect value={ubcFilter} onChange={setUbcFilter} />
+        </div>
       </header>
 
       {isLoading && (
@@ -89,10 +114,8 @@ export function DiscoveryPage() {
       {!isLoading && !isError && results.length === 0 && (
         <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border px-6 py-20 text-center">
           <Users className="h-10 w-10 text-muted-foreground" />
-          <p className="font-display text-lg font-medium">No matches here yet</p>
-          <p className="max-w-sm text-sm text-muted-foreground">
-            Refine your profile in AI Studio or check another tab as more people join.
-          </p>
+          <p className="font-display text-lg font-medium">{empty.title}</p>
+          <p className="max-w-sm text-sm text-muted-foreground">{empty.body}</p>
         </div>
       )}
 

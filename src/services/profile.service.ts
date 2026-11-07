@@ -130,9 +130,17 @@ export async function completeOnboarding(params: {
       },
     });
 
-  await regenerateBothEmbeddings(params.userId);
+  const embeddings = await regenerateBothEmbeddings(params.userId);
 
-  return { username: availability.username };
+  return {
+    username: availability.username,
+    embeddingModel: embeddings.self.model,
+    embeddingDimensions: embeddings.self.dimensions,
+    hasSelfEmbedding: true,
+    hasSeekingEmbedding: true,
+    // Stored on user_profiles.self_embedding / user_profiles.seeking_embedding
+    // (not on the users table).
+  };
 }
 
 export async function updateOwnedProfileText(params: {

@@ -30,8 +30,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${sora.variable} ${plexSans.variable} h-full`}
+      className={`${sora.variable} ${plexSans.variable} dark h-full`}
       suppressHydrationWarning
+      data-scroll-behavior="smooth"
     >
       <body className="min-h-full antialiased">
         <AppProviders>{children}</AppProviders>

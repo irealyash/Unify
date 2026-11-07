@@ -2,6 +2,8 @@ import type { FriendshipUiStatus } from "@/lib/profiles/public";
 
 export type DiscoveryKind = "you_might_like" | "might_like_you" | "mutual";
 
+export type UbcFilter = "all" | "ubc_students" | "ubc_verified";
+
 export type DiscoveryPerson = {
   id: string;
   username: string;

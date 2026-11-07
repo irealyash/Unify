@@ -66,6 +66,7 @@ export async function POST(req: Request) {
           updatedAt: new Date(),
         })
         .where(eq(users.id, existing.id));
+      await db.insert(userProfiles).values({ userId: existing.id }).onConflictDoNothing();
     } else {
       const [created] = await db
         .insert(users)
@@ -75,7 +76,7 @@ export async function POST(req: Request) {
           displayName,
         })
         .returning();
-      await db.insert(userProfiles).values({ userId: created.id });
+      await db.insert(userProfiles).values({ userId: created.id }).onConflictDoNothing();
     }
   }
 

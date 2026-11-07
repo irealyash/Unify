@@ -19,7 +19,7 @@ import { sql } from "drizzle-orm";
 import * as schema from "../src/lib/db/schema";
 import { embedText, getEmbeddingModel, vectorToSqlLiteral } from "../src/lib/embeddings";
 
-config({ path: ".env.local" });
+config({ path: ".env.local", override: true });
 
 if (process.env.NODE_ENV === "production" && process.env.ALLOW_PROD_SEED !== "true") {
   console.error("Refusing to seed in production. Set ALLOW_PROD_SEED=true to override.");

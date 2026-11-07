@@ -3,18 +3,18 @@ import Link from "next/link";
 
 export default function SignInPage() {
   return (
-    <div className="relative flex min-h-screen flex-col bg-[#050505] text-white">
+    <div className="relative flex min-h-screen flex-col bg-black text-white">
       <div
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 70% 50% at 50% -10%, rgba(20,184,166,0.18), transparent 60%)",
+            "radial-gradient(ellipse 70% 50% at 50% -10%, rgba(255,255,255,0.1), transparent 60%)",
         }}
       />
 
       <header className="relative z-10 flex items-center justify-between px-6 py-6 md:px-10">
         <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-500 text-sm font-bold text-black">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-sm font-bold text-black">
             M
           </span>
           <span className="text-sm font-semibold tracking-tight">Mutual</span>
@@ -25,7 +25,7 @@ export default function SignInPage() {
         <div className="w-full max-w-[420px]">
           <div className="mb-8 text-center">
             <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
-            <p className="mt-2 text-sm text-white/55">
+            <p className="mt-2 text-sm text-white/50">
               Continue with Google to find your people.
             </p>
           </div>
@@ -38,7 +38,7 @@ export default function SignInPage() {
               signUpForceRedirectUrl="/onboarding"
               appearance={{
                 variables: {
-                  colorPrimary: "#0F766E",
+                  colorPrimary: "#0a0a0a",
                   borderRadius: "0.75rem",
                 },
                 elements: {
@@ -49,7 +49,7 @@ export default function SignInPage() {
               }}
             />
           </div>
-          <p className="mt-6 text-center text-xs text-white/40">
+          <p className="mt-6 text-center text-xs text-white/35">
             Google is the only sign-in method.
           </p>
         </div>

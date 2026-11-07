@@ -14,9 +14,9 @@ export function UbcBadge({ claim, verified, className }: UbcBadgeProps) {
   if (verified) {
     return (
       <Badge
-        variant="accent"
+        variant="outline"
         className={cn(
-          "gap-1 border border-accent/30 bg-accent/15 font-medium text-accent",
+          "gap-1 border-foreground/20 bg-foreground text-[10px] font-medium text-background",
           className,
         )}
       >
@@ -28,11 +28,14 @@ export function UbcBadge({ claim, verified, className }: UbcBadgeProps) {
 
   return (
     <Badge
-      variant="muted"
-      className={cn("gap-1 font-normal text-muted-foreground", className)}
+      variant="outline"
+      className={cn(
+        "gap-1 border-dashed text-[10px] font-normal text-muted-foreground",
+        className,
+      )}
     >
       <GraduationCap className="h-3 w-3 opacity-60" />
-      UBC student
+      UBC · unverified
     </Badge>
   );
 }

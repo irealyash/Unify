@@ -55,6 +55,14 @@ export async function requireOnboardedUser() {
   return user;
 }
 
+async function ensureProfileRow(userId: string) {
+  await db.insert(userProfiles).values({ userId }).onConflictDoNothing();
+}
+
+/**
+ * Synchronously create/update the app user from Clerk.
+ * Never rely on webhooks alone for the first profile row.
+ */
 export async function syncClerkBasics() {
   const clerkUser = await currentUser();
   if (!clerkUser) return null;
@@ -72,22 +80,33 @@ export async function syncClerkBasics() {
       .set({
         avatarUrl: avatarUrl ?? existing.avatarUrl,
         displayName: existing.displayName || displayName,
+        isActive: true,
         updatedAt: new Date(),
       })
       .where(eq(users.id, existing.id))
       .returning();
+
+    await ensureProfileRow(updated.id);
     return updated;
   }
 
-  const [created] = await db
-    .insert(users)
-    .values({
-      clerkUserId: clerkUser.id,
-      avatarUrl,
-      displayName,
-    })
-    .returning();
+  try {
+    const [created] = await db
+      .insert(users)
+      .values({
+        clerkUserId: clerkUser.id,
+        avatarUrl,
+        displayName,
+      })
+      .returning();
 
-  await db.insert(userProfiles).values({ userId: created.id });
-  return created;
+    await ensureProfileRow(created.id);
+    return created;
+  } catch {
+    // Concurrent webhook/sign-in race: row may already exist.
+    const raced = await getAppUserByClerkId(clerkUser.id);
+    if (!raced) throw new AuthError("Could not create user profile", 500);
+    await ensureProfileRow(raced.id);
+    return raced;
+  }
 }
