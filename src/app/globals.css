@@ -1,0 +1,144 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f8f7f4;
+  --foreground: #141414;
+  --card: #ffffff;
+  --card-foreground: #141414;
+  --popover: #ffffff;
+  --popover-foreground: #141414;
+  --primary: #141414;
+  --primary-foreground: #f8f7f4;
+  --secondary: #eceae6;
+  --secondary-foreground: #141414;
+  --muted: #eceae6;
+  --muted-foreground: #5c5c5c;
+  --accent: #0f766e;
+  --accent-foreground: #ffffff;
+  --accent-bright: #14b8a6;
+  --destructive: #b91c1c;
+  --destructive-foreground: #ffffff;
+  --border: #e0ddd8;
+  --input: #e0ddd8;
+  --ring: #0f766e;
+  --sidebar: #f3f2ef;
+  --sidebar-foreground: #141414;
+  --sidebar-border: #e0ddd8;
+  --sidebar-accent: #e8e6e2;
+  --radius: 0.625rem;
+  --shadow-sm: 0 1px 2px rgb(20 20 20 / 4%);
+  --shadow-md: 0 4px 24px -4px rgb(20 20 20 / 8%);
+  --hero-glow: radial-gradient(
+    ellipse 80% 60% at 50% -20%,
+    rgb(20 184 166 / 12%),
+    transparent 70%
+  );
+}
+
+html.dark {
+  --background: #0c0c0c;
+  --foreground: #ededed;
+  --card: #141414;
+  --card-foreground: #ededed;
+  --popover: #141414;
+  --popover-foreground: #ededed;
+  --primary: #ededed;
+  --primary-foreground: #0c0c0c;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #ededed;
+  --muted: #1a1a1a;
+  --muted-foreground: #9a9a9a;
+  --accent: #14b8a6;
+  --accent-foreground: #0c0c0c;
+  --accent-bright: #2dd4bf;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #262626;
+  --input: #262626;
+  --ring: #14b8a6;
+  --sidebar: #0f0f0f;
+  --sidebar-foreground: #ededed;
+  --sidebar-border: #262626;
+  --sidebar-accent: #1a1a1a;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 40%);
+  --shadow-md: 0 8px 32px -8px rgb(0 0 0 / 50%);
+  --hero-glow: radial-gradient(
+    ellipse 80% 60% at 50% -20%,
+    rgb(15 118 110 / 18%),
+    transparent 70%
+  );
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-bright: var(--accent-bright);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 8px);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply h-full scroll-smooth;
+  }
+
+  body {
+    @apply min-h-full bg-background text-foreground antialiased;
+    font-family: var(--font-body), system-ui, sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display), system-ui, sans-serif;
+    @apply tracking-tight;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display), system-ui, sans-serif;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .bg-hero-glow {
+    background-image: var(--hero-glow);
+  }
+}
