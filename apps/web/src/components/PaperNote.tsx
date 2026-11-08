@@ -35,7 +35,7 @@ export function PaperNote({
           className="fill-secondary/80"
         />
       </svg>
-      <div className="relative z-10 flex h-full flex-col items-center justify-center px-12 text-center">
+      <div className="relative z-10 flex h-full flex-col items-center justify-center px-12 text-center text-card-foreground">
         {children}
       </div>
     </div>

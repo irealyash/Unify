@@ -7,6 +7,7 @@ import {
   ROOM_CODE_LENGTH,
   normalizeRoomCode,
 } from "@unify/shared";
+import { BookmarkTag } from "@/components/BookmarkTag";
 import { PaperNote } from "@/components/PaperNote";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,15 +70,23 @@ export function HomePage() {
             Unify
           </span>
         </Link>
-        <Button asChild variant="outline" size="sm">
-          <Link to="/host">Host a room</Link>
-        </Button>
+        <div className="group relative">
+          <BookmarkTag className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[125px] w-[166px] origin-top -translate-x-1/2 -translate-y-1/2 transition-transform duration-300 ease-in group-hover:scale-y-125" />
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className="text-xl hover:bg-transparent"
+          >
+            <Link to="/host">Host Room</Link>
+          </Button>
+        </div>
       </header>
 
       <main className="relative z-10 mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-md flex-col justify-center px-6 pb-16">
         <PaperNote className="max-w-sm -rotate-2">
           <h1 className="font-display text-[clamp(2.25rem,9vw,3.25rem)] font-semibold leading-[0.95] tracking-[-0.04em]">
-            Unify!
+            unify
           </h1>
           <p className="mt-3 text-balance text-muted-foreground">
             Your best team starts here
@@ -86,7 +95,7 @@ export function HomePage() {
 
         <form onSubmit={onJoin} className="mt-10 space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="code">Room code</Label>
+            <Label htmlFor="code">Room code:</Label>
             <div className="relative">
               <Input
                 id="code"
@@ -95,7 +104,7 @@ export function HomePage() {
                 onFocus={() => setFocusedField("code")}
                 onBlur={() => setFocusedField((f) => (f === "code" ? null : f))}
                 placeholder="ABC123"
-                className="h-12 pr-10 font-mono text-lg tracking-[0.3em] uppercase"
+                className="h-12 pr-10 text-lg tracking-[0.3em] uppercase"
                 required
                 maxLength={ROOM_CODE_LENGTH}
                 autoComplete="off"
@@ -111,7 +120,7 @@ export function HomePage() {
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="name">Your name</Label>
+            <Label htmlFor="name">Your name:</Label>
             <div className="relative">
               <Input
                 id="name"
@@ -119,8 +128,8 @@ export function HomePage() {
                 onChange={(e) => setName(e.target.value)}
                 onFocus={() => setFocusedField("name")}
                 onBlur={() => setFocusedField((f) => (f === "name" ? null : f))}
-                placeholder="First and last name"
-                className="pr-9"
+                placeholder="Name"
+                className="h-12 pr-9"
                 required
                 maxLength={MAX_NAME_LENGTH}
                 autoFocus={Boolean(code)}
@@ -134,15 +143,18 @@ export function HomePage() {
               />
             </div>
           </div>
-          <Button
-            type="submit"
-            size="lg"
-            disabled={loading}
-            className="h-11 w-full"
-          >
-            {loading ? "Joining…" : "Join"}
-            <ArrowRight />
-          </Button>
+          <div className="group relative">
+            <BookmarkTag className="pointer-events-none absolute -top-1 right-6 z-20 h-9 w-7 origin-top transition-transform duration-300 ease-in group-hover:scale-y-125" />
+            <Button
+              type="submit"
+              size="lg"
+              disabled={loading}
+              className="h-11 w-full"
+            >
+              {loading ? "Joining…" : "Join"}
+              <ArrowRight />
+            </Button>
+          </div>
         </form>
       </main>
     </div>
