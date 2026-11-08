@@ -1,5 +1,6 @@
 import { useGoogleAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import { isTestMode } from "@/lib/testMode";
 import { cn } from "@/lib/utils";
 
 function GoogleIcon({ className }: { className?: string }) {
@@ -53,11 +54,13 @@ export function GoogleAuthButton({ className }: { className?: string }) {
         )}
       >
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium">{user?.name ?? "Signed in"}</p>
-          <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
+          <p className="truncate text-sm font-medium">{isTestMode() ? "Test mode" : (user?.name ?? "Signed in")}</p>
+          <p className="truncate text-xs text-muted-foreground">
+            {isTestMode() ? "No sign-in needed" : user?.email}
+          </p>
         </div>
         <Button type="button" variant="ghost" size="sm" onClick={signOut}>
-          Sign out
+          {isTestMode() ? "Exit" : "Sign out"}
         </Button>
       </div>
     );

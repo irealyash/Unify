@@ -1,10 +1,12 @@
 import { io, type Socket } from "socket.io-client";
-import type {
-  Ack,
-  AckResult,
-  ClientToServerEvents,
-  ServerToClientEvents,
+import {
+  TEST_MODE_TOKEN,
+  type Ack,
+  type AckResult,
+  type ClientToServerEvents,
+  type ServerToClientEvents,
 } from "@unify/shared";
+import { isTestMode } from "@/lib/testMode";
 
 export type AppSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
@@ -12,10 +14,13 @@ export type AppSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 // In production, point VITE_SERVER_URL at the deployed server.
 const serverUrl = import.meta.env.VITE_SERVER_URL as string | undefined;
 
-export const socket: AppSocket = serverUrl ? io(serverUrl) : io();
+const options = isTestMode() ? { auth: { token: TEST_MODE_TOKEN } } : {};
+
+export const socket: AppSocket = serverUrl ? io(serverUrl, options) : io(options);
 
 /** Attach Auth0 ID token so join/host can require Google sign-in. Reconnects when needed. */
-export function setSocketAuthToken(token: string | null): Promise<void> {
+export function setSocketAuthToken(authToken: string | null): Promise<void> {
+  const token = isTestMode() ? TEST_MODE_TOKEN : authToken;
   const next = token ? { token } : {};
   const prev = (socket.auth as { token?: string } | undefined)?.token ?? null;
   const changed = (token ?? null) !== prev;

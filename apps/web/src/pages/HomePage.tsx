@@ -17,6 +17,7 @@ import { useGoogleAuth } from "@/lib/auth";
 import { request } from "@/lib/socket";
 import { CREDITS } from "@/credits";
 import { playerStorage } from "@/lib/storage";
+import { TEST_MODE_AVAILABLE, isTestMode, setTestMode } from "@/lib/testMode";
 import { cn } from "@/lib/utils";
 
 /** Join links use `?code=ABC123`. Auth0 redirects with a long OAuth `code` — ignore those. */
@@ -94,6 +95,17 @@ export function HomePage() {
           </span>
         </Link>
         <div className="flex items-center gap-2">
+          {TEST_MODE_AVAILABLE ? (
+            <Button
+              type="button"
+              variant={isTestMode() ? "secondary" : "ghost"}
+              size="sm"
+              aria-pressed={isTestMode()}
+              onClick={() => setTestMode(!isTestMode())}
+            >
+              {isTestMode() ? "Test mode: on" : "Test mode"}
+            </Button>
+          ) : null}
           {/* TEMP (testing): jump straight into The City scene. Dev builds only. */}
           {import.meta.env.DEV ? (
             <Button asChild variant="ghost" size="sm">

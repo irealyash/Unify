@@ -7,6 +7,7 @@ import {
   WALKABLE_STAGES,
   biomeArea,
   clampToArea,
+  TEST_MODE_TOKEN,
   normalizeContacts,
   normalizeRoomCode,
   playerArea,
@@ -102,12 +103,20 @@ function requireSignedIn(socket: AppSocket) {
   if (!socket.data.user) throw new Error("Sign in with Google to continue");
 }
 
+/** Lets people skip sign-in. Only `npm run dev` passes this flag, never `npm start`. */
+const TEST_MODE_ALLOWED = process.argv.includes("--allow-test-mode");
+
 export function registerHandlers(io: IO, store: RoomStore) {
   const broadcastPlayer = (room: Room, player: Player) =>
     io.to(channel(room.code)).emit("player:upsert", toPublicPlayer(player));
 
   io.use(async (socket, next) => {
     const token = (socket.handshake.auth as { token?: unknown } | undefined)?.token;
+    if (token === TEST_MODE_TOKEN && TEST_MODE_ALLOWED) {
+      socket.data.user = { sub: "test-mode", email: null, name: "Test mode", picture: null };
+      next();
+      return;
+    }
     if (typeof token === "string" && token.length > 0 && isAuth0Configured()) {
       try {
         const user = await verifyIdToken(token);

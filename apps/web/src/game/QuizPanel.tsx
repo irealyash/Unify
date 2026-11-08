@@ -10,6 +10,7 @@ import {
   type QuizAnswers,
 } from "@unify/shared";
 import { request } from "@/lib/socket";
+import { playerStore } from "@/lib/testMode";
 import { cn } from "@/lib/utils";
 
 const draftKey = (code: string) => `unify:draft:${code}`;
@@ -20,7 +21,7 @@ const STEPS = QUESTIONS.length + 1;
 
 function loadDraft(code: string): QuizAnswers {
   try {
-    return JSON.parse(localStorage.getItem(draftKey(code)) ?? "{}") as QuizAnswers;
+    return JSON.parse(playerStore().getItem(draftKey(code)) ?? "{}") as QuizAnswers;
   } catch {
     return {};
   }
@@ -28,8 +29,8 @@ function loadDraft(code: string): QuizAnswers {
 
 function saveDraft(code: string, answers: QuizAnswers | null) {
   try {
-    if (answers) localStorage.setItem(draftKey(code), JSON.stringify(answers));
-    else localStorage.removeItem(draftKey(code));
+    if (answers) playerStore().setItem(draftKey(code), JSON.stringify(answers));
+    else playerStore().removeItem(draftKey(code));
   } catch {
     // Storage blocked: the draft just won't survive a refresh.
   }
@@ -37,7 +38,7 @@ function saveDraft(code: string, answers: QuizAnswers | null) {
 
 function loadContacts(code: string): ContactLinks {
   try {
-    return JSON.parse(localStorage.getItem(contactsKey(code)) ?? "{}") as ContactLinks;
+    return JSON.parse(playerStore().getItem(contactsKey(code)) ?? "{}") as ContactLinks;
   } catch {
     return {};
   }
@@ -45,8 +46,8 @@ function loadContacts(code: string): ContactLinks {
 
 function saveContacts(code: string, contacts: ContactLinks | null) {
   try {
-    if (contacts) localStorage.setItem(contactsKey(code), JSON.stringify(contacts));
-    else localStorage.removeItem(contactsKey(code));
+    if (contacts) playerStore().setItem(contactsKey(code), JSON.stringify(contacts));
+    else playerStore().removeItem(contactsKey(code));
   } catch {
     // Storage blocked: the draft just won't survive a refresh.
   }

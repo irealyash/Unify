@@ -1,23 +1,24 @@
 import type { HostSession } from "@unify/shared";
+import { playerStore } from "@/lib/testMode";
 
 export type PlayerSession = { name: string; playerToken: string };
 
 const HOST_KEY = "unify:host";
 const playerKey = (code: string) => `unify:player:${code}`;
 
-function read<T>(key: string): T | null {
+function read<T>(key: string, store: () => Storage = () => localStorage): T | null {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = store().getItem(key);
     return raw ? (JSON.parse(raw) as T) : null;
   } catch {
     return null;
   }
 }
 
-function write(key: string, value: unknown) {
+function write(key: string, value: unknown, store: () => Storage = () => localStorage) {
   try {
-    if (value === null) localStorage.removeItem(key);
-    else localStorage.setItem(key, JSON.stringify(value));
+    if (value === null) store().removeItem(key);
+    else store().setItem(key, JSON.stringify(value));
   } catch {
     // Private mode or blocked storage: the session just won't survive a refresh.
   }
@@ -30,7 +31,7 @@ export const hostStorage = {
 };
 
 export const playerStorage = {
-  load: (code: string) => read<PlayerSession>(playerKey(code)),
-  save: (code: string, session: PlayerSession) => write(playerKey(code), session),
-  clear: (code: string) => write(playerKey(code), null),
+  load: (code: string) => read<PlayerSession>(playerKey(code), playerStore),
+  save: (code: string, session: PlayerSession) => write(playerKey(code), session, playerStore),
+  clear: (code: string) => write(playerKey(code), null, playerStore),
 };

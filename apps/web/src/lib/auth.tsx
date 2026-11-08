@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { setSocketAuthToken } from "@/lib/socket";
+import { isTestMode, setTestMode } from "@/lib/testMode";
 
 const domain = import.meta.env.VITE_AUTH0_DOMAIN as string | undefined;
 const clientId = import.meta.env.VITE_AUTH0_CLIENT_ID as string | undefined;
@@ -37,6 +38,17 @@ const missingAuth: GoogleAuthApi = {
   ensureSocketAuth: async () => {
     throw new Error("Auth0 is not configured");
   },
+};
+
+/** Stands in for a signed-in user while test mode is on. */
+const testModeAuth: GoogleAuthApi = {
+  ready: true,
+  configured: true,
+  isAuthenticated: true,
+  user: undefined,
+  signIn: () => {},
+  signOut: () => setTestMode(false),
+  ensureSocketAuth: async () => {},
 };
 
 const AuthApiContext = createContext<GoogleAuthApi | null>(null);
@@ -143,5 +155,6 @@ function Auth0ApiProvider({ children }: { children: ReactNode }) {
 }
 
 export function useGoogleAuth(): GoogleAuthApi {
-  return useContext(AuthApiContext) ?? missingAuth;
+  const auth = useContext(AuthApiContext) ?? missingAuth;
+  return isTestMode() ? testModeAuth : auth;
 }
