@@ -11,7 +11,6 @@ import {
   PlaneGeometry,
   SphereGeometry,
   Vector3,
-  type BufferGeometry,
   type Material,
 } from "three";
 import type { Area } from "@unify/shared";
@@ -40,6 +39,7 @@ import {
 } from "./highlandsMap";
 import { NOISE_GLSL, fbm } from "./noise";
 import { createRng } from "./random";
+import { useDispose } from "./useDispose";
 
 /**
  * The Highlands biome: grassy hills with a lone tree on the summit, groves of oaks and pines,
@@ -569,9 +569,4 @@ function Meadow() {
       <Scatter geometry={geometry.flower} material={material} items={flowers} yOffset={0.36} />
     </>
   );
-}
-
-/** Disposes geometries and materials when the component unmounts or they're rebuilt. */
-function useDispose(...things: Array<BufferGeometry | Material>) {
-  useEffect(() => () => things.forEach((t) => t.dispose()), things); // eslint-disable-line react-hooks/exhaustive-deps
 }

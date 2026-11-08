@@ -132,6 +132,7 @@ export const TREES: Tree[] = (() => {
     for (let gz = -VISUAL_HALF; gz <= VISUAL_HALF; gz += step) {
       const x = gx + rng.range(-1.1, 1.1);
       const z = gz + rng.range(-1.1, 1.1);
+      if (Math.max(Math.abs(x), Math.abs(z)) > VISUAL_HALF - 0.8) continue;
       const grove = fbm(x * 0.09 + 20, z * 0.09);
       const edge = Math.max(Math.abs(x), Math.abs(z)) > WALK_HALF - 3;
       const keep = grove > 0.55 ? 0.6 : edge ? 0.45 : 0.04;
@@ -197,7 +198,7 @@ export const STONES: { boulders: Stone[]; pebbles: Stone[] } = (() => {
   const rng = createRng(909);
   const boulders: Stone[] = [];
   const pebbles: Stone[] = [];
-  const reach = WALK_HALF + 6;
+  const reach = VISUAL_HALF - 0.8;
   for (let i = 0; i < 2000 && (boulders.length < 14 || pebbles.length < 70); i++) {
     const x = rng.range(-reach, reach);
     const z = rng.range(-reach, reach);

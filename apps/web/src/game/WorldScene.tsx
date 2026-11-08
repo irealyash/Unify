@@ -16,6 +16,8 @@ import {
   type PlayerState,
   type Stage,
 } from "@unify/shared";
+import { Beach } from "./biomes/Beach";
+import { beachGround, beachObstacles } from "./biomes/beachMap";
 import { Highlands } from "./biomes/Highlands";
 import { highlandsGround, highlandsObstacles } from "./biomes/highlandsMap";
 import { TokyoTown } from "./biomes/TokyoTown";
@@ -67,6 +69,13 @@ const BIOME_ENVS: Partial<Record<BiomeId, Environment>> = {
     hemisphere: ["#ffffff", "#b4c48e", 1.1],
     sun: { color: "#fff1d6", intensity: 2.3, shadows: true },
   },
+  // Golden sunshine, with warm light bouncing back up off the sand.
+  beach: {
+    background: "#bfe3f5",
+    fog: ["#dcedf2", 60, 320],
+    hemisphere: ["#fff7ea", "#ecd9ad", 1.25],
+    sun: { color: "#ffe9c4", intensity: 2.4, shadows: true },
+  },
 };
 
 type BiomeSceneProps = {
@@ -79,18 +88,21 @@ type BiomeSceneProps = {
 const BIOME_SCENES: Partial<Record<BiomeId, (props: BiomeSceneProps) => React.JSX.Element>> = {
   night_city: TokyoTown,
   highlands: Highlands,
+  beach: Beach,
 };
 
 /** What the local player collides with (world space), per biome. */
 const BIOME_OBSTACLES: Partial<Record<BiomeId, (area: Area) => Obstacles>> = {
   night_city: (a) => ({ rects: tokyoTownObstacles(a.cx, a.cz) }),
   highlands: (a) => highlandsObstacles(a.cx, a.cz),
+  beach: (a) => beachObstacles(a.cx, a.cz),
 };
 const obstacleCache = new Map<BiomeId, Obstacles>();
 
 /** Biomes that aren't flat: the ground height players stand on (world space). */
 const BIOME_GROUND: Partial<Record<BiomeId, (area: Area) => GroundHeight>> = {
   highlands: (a) => highlandsGround(a.cx, a.cz),
+  beach: (a) => beachGround(a.cx, a.cz),
 };
 const groundCache = new Map<BiomeId, GroundHeight>();
 
@@ -109,6 +121,7 @@ function groundFor(biome: BiomeId): GroundHeight | undefined {
 const BIOME_CAMERAS: Partial<Record<BiomeId, CameraRig>> = {
   night_city: { height: 7, distance: 10, lookHeight: 1.8 },
   highlands: { height: 8, distance: 11, lookHeight: 1.2 },
+  beach: { height: 8, distance: 11, lookHeight: 1.2 },
 };
 
 function obstaclesFor(biome: BiomeId): Obstacles | undefined {
@@ -169,7 +182,7 @@ export function WorldScene({ selfId, spectator, frozen }: WorldSceneProps) {
       onPointerMissed={() => useRoom.getState().setViewing(null)}
     >
       <color attach="background" args={[env.background]} />
-      <fog attach="fog" args={spectator ? [BG, 120, 260] : env.fog} />
+      <fog attach="fog" args={spectator ? [BG, 300, 600] : env.fog} />
       <hemisphereLight args={env.hemisphere} />
       {env.stars ? (
         <Stars radius={170} depth={50} count={3000} factor={5} saturation={0.4} fade speed={0.4} />
@@ -230,6 +243,8 @@ function Sun({
 }) {
   const light = useRef<DirectionalLight>(null);
   const target = useMemo(() => new Object3D(), []);
+  // A wide view needs the sun further back, or scenery ends up behind its shadow camera.
+  const reach = extent > 30 ? 3 : 1;
   useEffect(() => {
     target.position.set(focusX, 0, focusZ);
     target.updateMatrixWorld();
@@ -239,7 +254,7 @@ function Sun({
     <directionalLight
       ref={light}
       key={`${extent}:${focusX}:${focusZ}`}
-      position={[focusX + 14, 24, focusZ + 10]}
+      position={[focusX + 14 * reach, 24 * reach, focusZ + 10 * reach]}
       color={color}
       intensity={intensity}
       castShadow={shadows}
@@ -250,7 +265,7 @@ function Sun({
       shadow-camera-right={extent}
       shadow-camera-top={extent}
       shadow-camera-bottom={-extent}
-      shadow-camera-far={80}
+      shadow-camera-far={80 * reach}
     />
   );
 }
@@ -289,12 +304,13 @@ function renderPlayer(
 /** Width and depth (world units) the host camera must fit, including walls. */
 function worldExtent(wide: boolean) {
   if (!wide) return { width: LOBBY_AREA.half * 2 + 2, depth: LOBBY_AREA.half * 2 + 2 };
-  const { minX, maxX, halfDepth } = biomesExtent();
-  return { width: maxX - minX, depth: halfDepth * 2, centerX: (minX + maxX) / 2 };
+  return biomesExtent();
 }
 
 /** Viewing direction for the host camera: high and slightly in front. */
 const SPECTATOR_DIRECTION = new Vector3(0, 1, 0.85).normalize();
+/** Breathing room around the framed area. */
+const SPECTATOR_MARGIN = 1.12;
 
 /** Host camera: frames the lobby, then pulls back so every biome fits on screen. */
 function SpectatorCamera({ wide }: { wide: boolean }) {
@@ -304,9 +320,15 @@ function SpectatorCamera({ wide }: { wide: boolean }) {
     const { width, depth } = worldExtent(wide);
     const vfov = ((camera as PerspectiveCamera).fov * Math.PI) / 180;
     const hfov = 2 * Math.atan(Math.tan(vfov / 2) * (size.width / size.height));
-    // Far enough that the whole width and depth fit, with a little breathing room.
+    // Far enough that the nearest edge fits, height and width, seen from the camera's tilt.
+    const { y: rise, z: lean } = SPECTATOR_DIRECTION;
+    const toNearEdge = (depth / 2) * lean;
     const distance =
-      1.25 * Math.max(width / 2 / Math.tan(hfov / 2), depth / 2 / Math.tan(vfov / 2) + depth / 2);
+      SPECTATOR_MARGIN *
+      Math.max(
+        toNearEdge + ((depth / 2) * rise) / Math.tan(vfov / 2),
+        toNearEdge + width / 2 / Math.tan(hfov / 2),
+      );
     target.current.copy(SPECTATOR_DIRECTION).multiplyScalar(distance);
     camera.position.lerp(target.current, damp(2.5, Math.min(delta, 0.1)));
     camera.lookAt(0, 0, 0);

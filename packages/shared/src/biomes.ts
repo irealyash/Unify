@@ -6,7 +6,7 @@
  * It describes the ideal member of the biome, not the place.
  */
 
-export type BiomeId = "night_city" | "highlands";
+export type BiomeId = "night_city" | "highlands" | "beach";
 
 export type BiomeDef = {
   id: BiomeId;
@@ -38,7 +38,7 @@ export const BIOMES: BiomeDef[] = [
     answerHints: {
       start: ["right_away", "getting_ahead", "few_days"],
       investment: ["priority"],
-      communication: ["constant", "calls", "in_person"],
+      communication: ["constant"],
       meetings: ["often"],
       role: ["leader", "organizer"],
       expectations: ["high_bar", "responsive"],
@@ -56,14 +56,34 @@ export const BIOMES: BiomeDef[] = [
       "This student works at a relaxed, steady pace and is comfortable starting closer to the deadline without stressing about it. They are happy with a solid B or simply passing, and this project is one of many things in their life rather than a top priority. They prefer occasional, low-pressure updates and meeting only around milestones or when something needs deciding. They work whenever it suits them and happily take whatever role the group needs. They expect teammates to be easygoing and flexible, and they are not picky as long as the work gets done.",
     answerHints: {
       start: ["week_before", "last_minute"],
-      investment: ["my_part", "low", "balanced"],
+      investment: ["my_part", "low"],
       communication: ["weekly_update"],
       meetings: ["rarely"],
-      role: ["flexible", "ideas"],
-      expectations: ["flexible_open", "done"],
+      role: ["writer", "ideas"],
+      expectations: ["done"],
     },
     colors: { floor: "#eaf5ec", wall: "#c3e2c9", accent: "#2f9e57" },
     // Grassy hills around a meadow, with a lake at the bottom; the scenery runs a little past.
+    walkHalf: 15,
+    visualHalf: 20,
+  },
+  {
+    id: "beach",
+    name: "The Beach",
+    tagline: "Warm, social, all in it together.",
+    profile:
+      "This student starts within the first few days or about a week before it's due and keeps a steady, unhurried rhythm without much stress. They care about doing well while balancing other commitments, and they value a good group experience as much as the grade. They love working together, preferring in-person meetups and group calls, and are happy to meet about once a week. They do their best work in the afternoons alongside other people and take whatever role the group needs. They expect teammates to be friendly, flexible and open to new ideas.",
+    answerHints: {
+      start: ["week_before"],
+      investment: ["balanced"],
+      communication: ["calls", "in_person"],
+      meetings: ["weekly"],
+      schedule: ["daytime"],
+      role: ["flexible", "designer"],
+      expectations: ["flexible_open"],
+    },
+    colors: { floor: "#fdf3df", wall: "#f3d9a8", accent: "#e0812b" },
+    // A sandy cove with the sea to the north; a pier reaches out to the walkable edge.
     walkHalf: 15,
     visualHalf: 20,
   },
@@ -103,34 +123,34 @@ export type Area = { cx: number; cz: number; half: number };
 /** Empty space between neighbouring biomes' scenery. */
 const BIOME_GAP = 6;
 
-/** Biome centers along x: side by side, each as wide as its scenery, centered on 0. */
-const BIOME_CENTERS: Map<BiomeId, number> = (() => {
-  const total =
-    BIOMES.reduce((sum, b) => sum + b.visualHalf * 2, 0) + BIOME_GAP * (BIOMES.length - 1);
-  const centers = new Map<BiomeId, number>();
-  let left = -total / 2;
-  for (const b of BIOMES) {
-    centers.set(b.id, left + b.visualHalf);
-    left += b.visualHalf * 2 + BIOME_GAP;
-  }
-  return centers;
+/** Biomes sit in a grid this many wide and tall, filled left to right, top to bottom. */
+const GRID_SIZE = 2;
+/** Every grid cell fits the largest biome's scenery, so rows and columns line up. */
+const CELL_SIZE = Math.max(...BIOMES.map((b) => b.visualHalf)) * 2;
+const CELL_PITCH = CELL_SIZE + BIOME_GAP;
+
+/** Biome centers in the grid, which is centered on the world's origin. */
+const BIOME_CENTERS: Map<BiomeId, { x: number; z: number }> = (() => {
+  const offset = (index: number) => (index - (GRID_SIZE - 1) / 2) * CELL_PITCH;
+  return new Map(
+    BIOMES.map((b, i) => [
+      b.id,
+      { x: offset(i % GRID_SIZE), z: offset(Math.floor(i / GRID_SIZE)) },
+    ]),
+  );
 })();
 
 /** The walkable square of a biome, in world space. */
 export function biomeArea(id: BiomeId): Area {
   const biome = BIOME_BY_ID.get(id)!;
-  return { cx: BIOME_CENTERS.get(id)!, cz: 0, half: biome.walkHalf };
+  const center = BIOME_CENTERS.get(id)!;
+  return { cx: center.x, cz: center.z, half: biome.walkHalf };
 }
 
-/** World-space x range covered by all biome scenery, and the deepest biome's half-depth. */
+/** Width and depth of the whole grid of biome scenery, including any cells not yet filled. */
 export function biomesExtent() {
-  const first = BIOMES[0]!;
-  const last = BIOMES[BIOMES.length - 1]!;
-  return {
-    minX: BIOME_CENTERS.get(first.id)! - first.visualHalf,
-    maxX: BIOME_CENTERS.get(last.id)! + last.visualHalf,
-    halfDepth: Math.max(...BIOMES.map((b) => b.visualHalf)),
-  };
+  const size = GRID_SIZE * CELL_SIZE + (GRID_SIZE - 1) * BIOME_GAP;
+  return { width: size, depth: size };
 }
 
 export function clampToArea(area: Area, x: number, z: number) {
