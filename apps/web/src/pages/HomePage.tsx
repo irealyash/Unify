@@ -1,5 +1,5 @@
 import { ArrowRight, PencilLine } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import {
@@ -8,22 +8,18 @@ import {
   normalizeRoomCode,
 } from "@unify/shared";
 import { BookmarkTag } from "@/components/BookmarkTag";
-import { GoogleAuthButton } from "@/components/GoogleAuthButton";
-import { AUTH_BOX, ModelCredits, TestModeBox } from "@/components/PageExtras";
+import { ModelCredits } from "@/components/PageExtras";
 import { PaperNote } from "@/components/PaperNote";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { HomeBackdrop } from "@/game/HomeBackdrop";
-import { useGoogleAuth } from "@/lib/auth";
 import { request } from "@/lib/socket";
 import { playerStorage } from "@/lib/storage";
-import { TEST_MODE_AVAILABLE, isTestMode, setTestMode } from "@/lib/testMode";
 import { cn } from "@/lib/utils";
 
-/** Join links use `?code=ABC123`. Auth0 redirects with a long OAuth `code` — ignore those. */
+/** Join links use `?code=ABC123`. */
 function roomCodeFromSearch(params: URLSearchParams) {
-  if (params.has("state")) return ""; // Auth0 callback always includes state
   const raw = params.get("code");
   if (!raw) return "";
   const normalized = normalizeRoomCode(raw);
@@ -39,7 +35,6 @@ const FIELD_ICON =
 export function HomePage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const { isAuthenticated, user, ready, ensureSocketAuth } = useGoogleAuth();
   const [code, setCode] = useState(() => roomCodeFromSearch(params));
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -47,20 +42,11 @@ export function HomePage() {
     null,
   );
 
-  useEffect(() => {
-    if (user?.name && !name) setName(user.name);
-  }, [user, name]);
-
   async function onJoin(e: React.FormEvent) {
     e.preventDefault();
-    if (!isAuthenticated) {
-      toast.error("Sign in with Google to join a room");
-      return;
-    }
     const roomCode = normalizeRoomCode(code);
     setLoading(true);
     try {
-      await ensureSocketAuth();
       const previous = playerStorage.load(roomCode);
       const result = await request("player:join", {
         code: roomCode,
@@ -79,8 +65,6 @@ export function HomePage() {
     }
   }
 
-  const canJoin = isAuthenticated && ready;
-
   return (
     <div className="relative min-h-full overflow-hidden">
       <HomeBackdrop />
@@ -94,7 +78,7 @@ export function HomePage() {
 
       <header className="[text-shadow:0_1px_3px_rgba(0,0,0,0.85)] relative z-10 flex w-full items-center justify-between px-6 py-5 md:absolute md:inset-x-0 md:top-0">
         <Link to="/" className="font-display text-4xl font-semibold leading-none tracking-tight">
-          younfy
+          younify
         </Link>
         <div className="flex items-center gap-3">
           {/* TEMP (testing): jump straight into The City scene. Dev builds only. */}
@@ -114,18 +98,6 @@ export function HomePage() {
               <Link to="/host">Host Room</Link>
             </Button>
           </div>
-          {TEST_MODE_AVAILABLE ? (
-            <Button
-              type="button"
-              variant={isTestMode() ? "secondary" : "ghost"}
-              size="sm"
-              aria-pressed={isTestMode()}
-              onClick={() => setTestMode(!isTestMode())}
-              className="ml-3 text-xl"
-            >
-              {isTestMode() ? "Test mode: on" : "Test mode"}
-            </Button>
-          ) : null}
         </div>
       </header>
 
@@ -159,7 +131,6 @@ export function HomePage() {
                 maxLength={ROOM_CODE_LENGTH}
                 autoComplete="off"
                 autoFocus={!code}
-                disabled={!canJoin}
               />
               <PencilLine
                 aria-hidden="true"
@@ -186,7 +157,6 @@ export function HomePage() {
                 required
                 maxLength={MAX_NAME_LENGTH}
                 autoFocus={Boolean(code)}
-                disabled={!canJoin}
               />
               <PencilLine
                 aria-hidden="true"
@@ -202,7 +172,7 @@ export function HomePage() {
             <Button
               type="submit"
               size="lg"
-              disabled={loading || !canJoin}
+              disabled={loading}
               className="h-11 w-full text-xl [&_svg]:size-5"
             >
               {loading ? "Joining…" : "Join"}
@@ -210,21 +180,8 @@ export function HomePage() {
             </Button>
           </div>
         </form>
-
-        {/* Signing in belongs with the form; test mode is just a status, so it sits out of the way. */}
-        {isTestMode() ? null : (
-          <div className="[text-shadow:0_1px_3px_rgba(0,0,0,0.85)] mx-auto mt-3 w-full max-w-[21rem] space-y-3">
-            <GoogleAuthButton className={AUTH_BOX} />
-            {!isAuthenticated && ready ? (
-              <p className="text-center text-lg text-white/85">
-                Sign in with Google to join or host a room.
-              </p>
-            ) : null}
-          </div>
-        )}
       </main>
 
-      <TestModeBox />
       <ModelCredits />
     </div>
   );

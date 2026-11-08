@@ -4,18 +4,15 @@ import { Link } from "react-router";
 import { toast } from "sonner";
 import { BIOMES, BIOME_BY_ID, type HostSession, type PlayerState, type SortMethod } from "@unify/shared";
 import { BookmarkTag } from "@/components/BookmarkTag";
-import { GoogleAuthButton } from "@/components/GoogleAuthButton";
-import { ModelCredits, OVER_SCENE_TEXT, TestModeBox } from "@/components/PageExtras";
+import { ModelCredits, OVER_SCENE_TEXT } from "@/components/PageExtras";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { HomeBackdrop } from "@/game/HomeBackdrop";
 import { SortingOverlay } from "@/game/SortingOverlay";
 import { useRoom, useRoomEvents } from "@/game/store";
 import { WorldScene } from "@/game/WorldScene";
-import { useGoogleAuth } from "@/lib/auth";
 import { onEveryConnect, request } from "@/lib/socket";
 import { hostStorage } from "@/lib/storage";
-import { isTestMode } from "@/lib/testMode";
 import { cn } from "@/lib/utils";
 
 /** Shown while the host is zoomed in on a biome: returns to the view of them all. */
@@ -47,7 +44,6 @@ function ZoomBackButton() {
 }
 
 export function HostPage() {
-  const { isAuthenticated, ready: authReady, ensureSocketAuth } = useGoogleAuth();
   const [session, setSession] = useState<HostSession | null>(() => hostStorage.load());
   const [creating, setCreating] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -79,13 +75,8 @@ export function HostPage() {
   }, [session]);
 
   async function createRoom() {
-    if (!isAuthenticated) {
-      toast.error("Sign in with Google to host a room");
-      return;
-    }
     setCreating(true);
     try {
-      await ensureSocketAuth();
       const created = await request("host:create");
       hostStorage.save(created);
       setSession(created);
@@ -108,7 +99,6 @@ export function HostPage() {
   }
 
   if (!session) {
-    const canHost = isAuthenticated && authReady;
     return (
       <div className="relative flex min-h-full flex-col items-center justify-center overflow-hidden px-6">
         <HomeBackdrop />
@@ -133,23 +123,16 @@ export function HostPage() {
               size="lg"
               className="h-11 w-full text-xl [&_svg]:size-5"
               onClick={createRoom}
-              disabled={creating || !canHost}
+              disabled={creating}
             >
               <Plus />
               {creating ? "Creating…" : "Create room"}
             </Button>
-            {isTestMode() ? null : <GoogleAuthButton className="h-11" />}
-            {!isAuthenticated && authReady ? (
-              <p className="text-center text-xs text-muted-foreground">
-                Sign in with Google to host a room.
-              </p>
-            ) : null}
             <Button asChild variant="ghost" className="h-11 w-full text-xl">
               <Link to="/">Join a room instead</Link>
             </Button>
           </CardContent>
         </Card>
-        <TestModeBox />
         <ModelCredits />
       </div>
     );

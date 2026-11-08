@@ -1,10 +1,12 @@
 import type { HostSession } from "@unify/shared";
-import { playerStore } from "@/lib/testMode";
 
 export type PlayerSession = { name: string; playerToken: string };
 
 const HOST_KEY = "unify:host";
 const playerKey = (code: string) => `unify:player:${code}`;
+
+/** Per tab, so each browser tab can be its own person in a room. */
+const playerStore = () => sessionStorage;
 
 function read<T>(key: string, store: () => Storage = () => localStorage): T | null {
   try {

@@ -2,9 +2,6 @@ import type { ContactLinks } from "./contacts";
 import type { QuizAnswers } from "./questions";
 import type { Customisation, Pose, PlayerState, RoomSnapshot, Stage } from "./room";
 
-/** Sent instead of a sign-in token in test mode (only accepted by a dev server). */
-export const TEST_MODE_TOKEN = "unify-test-mode";
-
 export type AckResult<T> = { ok: true; data: T } | { ok: false; error: string };
 export type Ack<T> = (result: AckResult<T>) => void;
 

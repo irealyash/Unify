@@ -152,16 +152,4 @@ export async function setupDatabase(db: postgres.Sql) {
       updated_at timestamptz NOT NULL DEFAULT now()
     )
   `;
-  await db`
-    CREATE TABLE IF NOT EXISTS users (
-      id text PRIMARY KEY,
-      email text,
-      name text,
-      picture text,
-      created_at timestamptz NOT NULL DEFAULT now(),
-      updated_at timestamptz NOT NULL DEFAULT now(),
-      last_login_at timestamptz NOT NULL DEFAULT now()
-    )
-  `;
-  await db`CREATE INDEX IF NOT EXISTS users_email_idx ON users (email)`;
 }

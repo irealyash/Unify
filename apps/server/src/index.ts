@@ -19,9 +19,7 @@ const WEB_ORIGINS = (process.env.WEB_ORIGIN || "http://localhost:5173")
   .filter(Boolean);
 
 const httpServer = createServer((req, res) => {
-  void handleHttp(req, res).then((handled) => {
-    if (!handled) res.writeHead(404).end();
-  });
+  if (!handleHttp(req, res)) res.writeHead(404).end();
 });
 
 const io: IO = new Server(httpServer, {
