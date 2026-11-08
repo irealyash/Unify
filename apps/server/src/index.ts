@@ -9,6 +9,7 @@ import {
   startRoomCleanup,
   type IO,
 } from "./handlers";
+import { handleHttp } from "./http";
 import { RoomStore } from "./rooms";
 
 const PORT = Number(process.env.PORT) || 3001;
@@ -18,12 +19,9 @@ const WEB_ORIGINS = (process.env.WEB_ORIGIN || "http://localhost:5173")
   .filter(Boolean);
 
 const httpServer = createServer((req, res) => {
-  if (req.url === "/health") {
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ ok: true }));
-    return;
-  }
-  res.writeHead(404).end();
+  void handleHttp(req, res).then((handled) => {
+    if (!handled) res.writeHead(404).end();
+  });
 });
 
 const io: IO = new Server(httpServer, {

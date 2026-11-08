@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { CanvasTexture, SRGBColorSpace } from "three";
 
-const FONT = '600 44px "IBM Plex Sans", system-ui, sans-serif';
+const FONT = '600 44px "Klee One", system-ui, sans-serif';
 const TAG_HEIGHT_PX = 72;
 const PADDING_X_PX = 26;
 /** Height of the tag in world units. */

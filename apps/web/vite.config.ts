@@ -7,6 +7,8 @@ const SERVER_URL = process.env.UNIFY_SERVER_URL || "http://localhost:3001";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // Load Auth0 + Gemini keys from the monorepo root `.env`.
+  envDir: fileURLToPath(new URL("../..", import.meta.url)),
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
@@ -16,9 +18,10 @@ export default defineConfig({
     port: 5173,
     // Let teammates reach your dev server through a tunnel (see README → "Playing together").
     allowedHosts: [".trycloudflare.com", ".ngrok-free.app"],
-    // Proxy the socket to the game server so the browser only ever talks to one origin in dev.
+    // Proxy the socket + auth API to the game server so the browser talks to one origin in dev.
     proxy: {
       "/socket.io": { target: SERVER_URL, ws: true },
+      "/api": { target: SERVER_URL },
     },
   },
 });

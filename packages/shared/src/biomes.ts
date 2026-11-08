@@ -36,13 +36,12 @@ export const BIOMES: BiomeDef[] = [
     profile:
       "This student starts work right away and moves fast, finishing well ahead of deadlines with time left to improve it. They are aiming for an A or A+ and treat this project as a top priority. They want an active group chat with quick replies and frequent meetings to keep momentum high. They put in long hours, often into the evening, and naturally take charge as an organizer or a heavy-lifting builder. They expect teammates to hold a high bar, pull equal weight and respond quickly.",
     answerHints: {
-      start: ["right_away", "few_days"],
-      grade: ["top", "a_range"],
+      start: ["right_away", "getting_ahead", "few_days"],
       investment: ["priority"],
-      communication: ["constant", "calls"],
-      meetings: ["often", "weekly"],
-      role: ["leader", "builder"],
-      expectations: ["high_bar", "reliable"],
+      communication: ["constant", "calls", "in_person"],
+      meetings: ["often"],
+      role: ["leader", "organizer"],
+      expectations: ["high_bar", "responsive"],
     },
     colors: { floor: "#eceefe", wall: "#c9ccf5", accent: "#5b5ce2" },
     // The "Tokyo Tower" town model, about 34 × 34 world units; players stay just inside it.
@@ -57,12 +56,11 @@ export const BIOMES: BiomeDef[] = [
       "This student works at a relaxed, steady pace and is comfortable starting closer to the deadline without stressing about it. They are happy with a solid B or simply passing, and this project is one of many things in their life rather than a top priority. They prefer occasional, low-pressure updates and meeting only around milestones or when something needs deciding. They work whenever it suits them and happily take whatever role the group needs. They expect teammates to be easygoing and flexible, and they are not picky as long as the work gets done.",
     answerHints: {
       start: ["week_before", "last_minute"],
-      grade: ["b_range", "pass"],
       investment: ["my_part", "low", "balanced"],
-      communication: ["async", "minimal"],
-      meetings: ["milestones", "rarely"],
-      role: ["flexible", "ideas", "polisher"],
-      expectations: ["chill", "done"],
+      communication: ["weekly_update"],
+      meetings: ["rarely"],
+      role: ["flexible", "ideas"],
+      expectations: ["flexible_open", "done"],
     },
     colors: { floor: "#eaf5ec", wall: "#c3e2c9", accent: "#2f9e57" },
     // Grassy hills around a meadow, with a lake at the bottom; the scenery runs a little past.

@@ -83,6 +83,7 @@ export function PlayPage() {
   const viewing = teammates.find((p) => p.id === viewingId);
 
   const closeProfile = useCallback(() => setViewing(null), [setViewing]);
+  const joinUrl = `${window.location.origin}/?code=${code}`;
 
   function closeReveal() {
     setRevealed(true);
@@ -122,23 +123,33 @@ export function PlayPage() {
       )}
 
       <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-4">
-        <div className="flex items-stretch gap-2">
-          <div className="hud rounded-xl px-4 py-3">
-            <div className="hud-muted text-xs uppercase tracking-wider">Room</div>
-            <div className="font-mono text-lg font-semibold tracking-[0.2em]">{code}</div>
+        <div className="hud rounded-md px-4 py-3">
+          <h3 className="hud-muted font-handwritten text-sm tracking-wider">Room</h3>
+          <button
+            type="button"
+            onClick={() => {
+              void navigator.clipboard?.writeText(joinUrl);
+              toast.success("Join link copied");
+            }}
+            aria-label="Copy join link"
+            className="pointer-events-auto font-handwritten text-2xl font-semibold tracking-[0.2em] transition hover:opacity-80"
+          >
+            {code}
+          </button>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          <div className="hud rounded-md px-4 py-3 text-right">
+            <h3 className="hud-muted font-handwritten text-sm tracking-wider">{status.title}</h3>
+            <div className="text-base">{status.detail}</div>
           </div>
           <button
             type="button"
             onClick={leave}
-            className="hud hud-muted pointer-events-auto flex items-center gap-1.5 rounded-xl px-3 text-sm transition hover:text-[#0f1222]"
+            className="pointer-events-auto flex items-center gap-1.5 rounded-md bg-destructive px-3 py-2 text-base text-destructive-foreground shadow-[0_6px_20px_-10px_rgb(15_18_34_/_0.25)] backdrop-blur-[8px] transition hover:opacity-90"
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-5 w-5" />
             Leave
           </button>
-        </div>
-        <div className="hud rounded-xl px-4 py-3 text-right">
-          <div className="hud-muted text-xs uppercase tracking-wider">{status.title}</div>
-          <div className="text-sm">{status.detail}</div>
         </div>
       </div>
 
@@ -154,8 +165,8 @@ export function PlayPage() {
 
       {!quizOpen && stage !== "sorting" && !showReveal && !viewing ? (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-5">
-          <div className="hud hud-muted rounded-full px-4 py-2 text-sm">
-            <kbd className="font-mono text-[#0f1222]">WASD</kbd> or arrow keys to move
+          <div className="hud hud-muted rounded-full px-4 py-2 text-base">
+            <kbd className="font-handwritten text-[#f5f1ed]">WASD</kbd> or arrow keys to move
             {stage === "biomes" && teammates.length > 0 ? " · click a teammate to see their profile" : null}
           </div>
         </div>
@@ -171,12 +182,12 @@ function statusLine(
   teammates: PlayerState[],
 ) {
   const online = everyone.filter((p) => p.connected).length;
-  if (stage === "lobby") return { title: "Lobby", detail: `${online} here · waiting for host` };
+  if (stage === "lobby") return { title: "Lobby", detail: `${online} here, waiting for host` };
   if (stage === "quiz") {
     if (self?.quiz === "processing") return { title: "Quiz", detail: "Reading your answers…" };
     if (self?.quiz === "ready") {
       const done = everyone.filter((p) => p.quiz === "ready").length;
-      return { title: "Quiz", detail: `${done}/${everyone.length} done · waiting for the sort` };
+      return { title: "Quiz", detail: `${done}/${everyone.length} done, waiting for the sort` };
     }
     return { title: "Quiz", detail: "Answer the questions" };
   }
