@@ -10,9 +10,11 @@ const buttonVariants = cva(
       variant: {
         default: "bg-primary text-primary-foreground shadow-sm hover:opacity-90",
         accent: "bg-accent text-accent-foreground shadow-sm hover:opacity-90",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        outline: "border border-border bg-transparent hover:bg-muted",
-        ghost: "hover:bg-muted",
+        secondary: "bg-secondary text-[#182043] hover:bg-secondary/80",
+        // Hover tints with the text colour rather than a fixed beige, so these
+        // stay readable on dark surfaces as well as light ones.
+        outline: "border border-border bg-transparent hover:bg-current/10",
+        ghost: "hover:bg-current/10",
         destructive: "bg-destructive text-destructive-foreground hover:opacity-90",
         link: "text-accent underline-offset-4 hover:underline",
       },

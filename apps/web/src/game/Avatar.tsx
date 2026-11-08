@@ -27,8 +27,8 @@ const INK = "#46382f";
  * Proportions measured from the character drawing, as fractions of the body's
  * own width/height, so the figure stays on-model at any size.
  *
- *   body 1.234 w:h · eye 0.058w x 0.136h at 0.345 out · mouth 0.079w wide,
- *   0.338 below centre · feet 0.239w x 0.130h at 0.469 out
+ *   body 1.234 w:h, eye 0.058w x 0.136h at 0.345 out, mouth 0.079w wide
+ *   and 0.338 below centre, feet 0.239w x 0.130h at 0.469 out
  */
 const BODY_HH = 0.58;
 /** The drawing's width. Feet are sized off this so narrowing the body below

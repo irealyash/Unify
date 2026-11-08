@@ -36,7 +36,8 @@ import { useRoom } from "./store";
 
 const WALL_HEIGHT = 1.2;
 const WALL_THICKNESS = 0.4;
-const BG = "#f3f4f7";
+/** Empty space beyond the biome geometry — the palette's light beige (--muted). */
+const BG = "#eae2d8";
 
 /** Sky, fog and lights. The lobby, the host overview and plain biomes use DEFAULT_ENV. */
 type Environment = {

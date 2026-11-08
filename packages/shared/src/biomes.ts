@@ -43,7 +43,7 @@ export const BIOMES: BiomeDef[] = [
       role: ["leader", "organizer"],
       expectations: ["high_bar", "responsive"],
     },
-    colors: { floor: "#eceefe", wall: "#c9ccf5", accent: "#5b5ce2" },
+    colors: { floor: "#E9EEF4", wall: "#C2CDDB", accent: "#586E8A" },
     // The "Tokyo Tower" town model, about 34 × 34 world units; players stay just inside it.
     walkHalf: 16.6,
     visualHalf: 18,
@@ -62,7 +62,7 @@ export const BIOMES: BiomeDef[] = [
       role: ["writer", "ideas"],
       expectations: ["done"],
     },
-    colors: { floor: "#eaf5ec", wall: "#c3e2c9", accent: "#2f9e57" },
+    colors: { floor: "#E8F3E8", wall: "#BFD7BE", accent: "#4F874D" },
     // Grassy hills around a meadow, with a lake at the bottom; the scenery runs a little past.
     walkHalf: 15,
     visualHalf: 20,
@@ -82,7 +82,7 @@ export const BIOMES: BiomeDef[] = [
       role: ["flexible", "designer"],
       expectations: ["flexible_open"],
     },
-    colors: { floor: "#fdf3df", wall: "#f3d9a8", accent: "#e0812b" },
+    colors: { floor: "#F8F1E2", wall: "#E4D4B4", accent: "#D1B275" },
     // A sandy cove with the sea to the north; a pier reaches out to the walkable edge.
     walkHalf: 15,
     visualHalf: 20,
@@ -102,7 +102,7 @@ export const BIOMES: BiomeDef[] = [
       role: ["writer"],
       expectations: ["high_bar"],
     },
-    colors: { floor: "#f3ebdd", wall: "#d9cbb2", accent: "#7a4f2e" },
+    colors: { floor: "#F1E9DF", wall: "#D5C4B1", accent: "#BA4D4D" },
     // A single big room; players stay just inside its walls.
     walkHalf: 15,
     visualHalf: 17,

@@ -73,7 +73,7 @@ export const QUESTIONS: Question[] = [
     options: [
       { id: "often", label: "Several times a week" },
       { id: "weekly", label: "Once a week" },
-      { id: "rarely", label: "As little as possible" },
+      { id: "rarely", label: "Only when necessary" },
     ],
   },
   {

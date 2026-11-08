@@ -94,7 +94,7 @@ export function HomePage() {
 
       <header className="[text-shadow:0_1px_3px_rgba(0,0,0,0.85)] relative z-10 flex w-full items-center justify-between px-6 py-5 md:absolute md:inset-x-0 md:top-0">
         <Link to="/" className="font-display text-4xl font-semibold leading-none tracking-tight">
-          unify
+          younfy
         </Link>
         <div className="flex items-center gap-3">
           {/* TEMP (testing): jump straight into The City scene. Dev builds only. */}
@@ -133,10 +133,10 @@ export function HomePage() {
         <PaperNote className="max-w-sm -rotate-2">
           <div className="-translate-y-5">
             <h1 className="font-display text-[clamp(2.25rem,9vw,3.25rem)] font-semibold leading-[0.95] tracking-[-0.04em]">
-              unify
+              younify
             </h1>
             <p className="mt-3 text-balance text-muted-foreground">
-              Your best team starts here
+              Your best team starts here!
             </p>
           </div>
         </PaperNote>

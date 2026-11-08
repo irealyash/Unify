@@ -63,7 +63,7 @@ export function PreviewPage() {
     <div className="relative h-full bg-[#070816]">
       <WorldScene selfId={hostView ? null : SELF_ID} spectator={hostView} />
       <div className="hud absolute left-4 top-4 flex flex-wrap items-center gap-3 rounded-xl px-4 py-2.5 text-sm">
-        <span className="font-semibold">Preview · {BIOME_BY_ID.get(biome)!.name}</span>
+        <span className="font-semibold">Preview {BIOME_BY_ID.get(biome)!.name}</span>
         {BIOMES.map((b) => (
           <Link key={b.id} to={`/preview/${b.id}${hostView ? "?view=host" : ""}`} className="hud-muted underline-offset-2 hover:underline">
             {b.name}

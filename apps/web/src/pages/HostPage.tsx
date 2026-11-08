@@ -41,7 +41,7 @@ function ZoomBackButton() {
     >
       <ArrowLeft className="h-5 w-5" />
       Back
-      <span className="hud-muted ml-1">· {BIOME_BY_ID.get(focus)!.name}</span>
+      <span className="hud-muted ml-1"> {BIOME_BY_ID.get(focus)!.name}</span>
     </button>
   );
 }
@@ -173,7 +173,7 @@ export function HostPage() {
 
   return (
     <div className="flex h-full flex-col lg:flex-row">
-      <div className="relative min-h-[50vh] flex-1 bg-[#f3f4f7]">
+      <div className="relative min-h-[50vh] flex-1 bg-muted">
         {code ? <WorldScene spectator /> : null}
         {stage === "lobby" || stage === "quiz" ? (
           <div className="hud pointer-events-none absolute left-1/2 top-6 -translate-x-1/2 rounded-md px-8 py-4 text-center">
@@ -332,7 +332,7 @@ function Groups({ roster }: { roster: PlayerState[] }) {
                       {method ? (
                         <span
                           title={method.hint}
-                          className="ml-auto rounded-full bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground"
+                          className="ml-auto rounded-sm bg-muted px-2 py-0.5 text-[11px] text-card-foreground"
                         >
                           {method.label}
                         </span>

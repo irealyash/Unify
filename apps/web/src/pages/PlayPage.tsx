@@ -116,7 +116,7 @@ export function PlayPage() {
   }
 
   return (
-    <div className="relative h-full bg-[#f3f4f7]">
+    <div className="relative h-full bg-muted">
       {selfId ? (
         <WorldScene selfId={selfId} frozen={quizOpen || showReveal} />
       ) : (
@@ -169,7 +169,7 @@ export function PlayPage() {
         <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-5">
           <div className="hud hud-muted rounded-full px-4 py-2 text-base">
             <kbd className="font-handwritten text-[#f5f1ed]">WASD</kbd> or arrow keys to move
-            {stage === "biomes" && teammates.length > 0 ? " · click a teammate to see their profile" : null}
+            {stage === "biomes" && teammates.length > 0 ? ", click a teammate to see their profile" : null}
           </div>
         </div>
       ) : null}
