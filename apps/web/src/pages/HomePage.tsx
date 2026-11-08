@@ -13,6 +13,7 @@ import { PaperNote } from "@/components/PaperNote";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { HomeBackdrop } from "@/game/HomeBackdrop";
 import { useGoogleAuth } from "@/lib/auth";
 import { request } from "@/lib/socket";
 import { CREDITS } from "@/credits";
@@ -29,6 +30,12 @@ function roomCodeFromSearch(params: URLSearchParams) {
   if (normalized.length !== ROOM_CODE_LENGTH) return "";
   return normalized;
 }
+
+const SIGN_IN_BOX = "h-11 bg-[rgba(28,21,16,0.6)] py-0 backdrop-blur-sm";
+const FIELD_LABEL = "mb-1.5 block h-6 text-xl leading-6 text-white";
+const FIELD_BOX = "h-11 pr-10 text-base";
+const FIELD_ICON =
+  "pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-primary transition-opacity duration-150";
 
 export function HomePage() {
   const navigate = useNavigate();
@@ -75,8 +82,16 @@ export function HomePage() {
 
   const canJoin = isAuthenticated && ready;
 
+  // The 3D backdrop takes a moment to build, so let the form appear first.
+  const [showBackdrop, setShowBackdrop] = useState(false);
+  useEffect(() => {
+    const id = window.setTimeout(() => setShowBackdrop(true), 50);
+    return () => window.clearTimeout(id);
+  }, []);
+
   return (
     <div className="relative min-h-full overflow-hidden">
+      {showBackdrop ? <HomeBackdrop /> : null}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
@@ -85,16 +100,28 @@ export function HomePage() {
         }}
       />
 
-      <header className="relative z-10 mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-6">
-        <Link to="/" className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary font-display text-sm font-bold text-primary-foreground">
-            U
-          </span>
-          <span className="text-[15px] font-semibold tracking-tight">
-            Unify
-          </span>
+      <header className="[text-shadow:0_1px_3px_rgba(0,0,0,0.85)] relative z-10 flex w-full items-center justify-between px-6 py-5 md:absolute md:inset-x-0 md:top-0">
+        <Link to="/" className="font-display text-4xl font-semibold leading-none tracking-tight">
+          unify
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          {/* TEMP (testing): jump straight into The City scene. Dev builds only. */}
+          {import.meta.env.DEV ? (
+            <Button asChild variant="ghost" size="sm" className="text-lg">
+              <Link to="/preview/night_city">Go to The City</Link>
+            </Button>
+          ) : null}
+          <div className="group relative">
+            <BookmarkTag className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[112px] w-[148px] origin-top -translate-x-1/2 -translate-y-1/2 transition-transform duration-300 ease-in group-hover:scale-y-125" />
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="text-lg hover:bg-transparent"
+            >
+              <Link to="/host">Host Room</Link>
+            </Button>
+          </div>
           {TEST_MODE_AVAILABLE ? (
             <Button
               type="button"
@@ -102,43 +129,31 @@ export function HomePage() {
               size="sm"
               aria-pressed={isTestMode()}
               onClick={() => setTestMode(!isTestMode())}
+              className="ml-3 text-lg"
             >
               {isTestMode() ? "Test mode: on" : "Test mode"}
             </Button>
           ) : null}
-          {/* TEMP (testing): jump straight into The City scene. Dev builds only. */}
-          {import.meta.env.DEV ? (
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/preview/night_city">Go to The City</Link>
-            </Button>
-          ) : null}
-          <div className="group relative">
-            <BookmarkTag className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[125px] w-[166px] origin-top -translate-x-1/2 -translate-y-1/2 transition-transform duration-300 ease-in group-hover:scale-y-125" />
-            <Button
-              asChild
-              variant="ghost"
-              size="sm"
-              className="text-xl hover:bg-transparent"
-            >
-              <Link to="/host">Host Room</Link>
-            </Button>
-          </div>
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-md flex-col justify-center px-6 pb-16">
+      <main className="relative z-10 mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-md flex-col justify-center px-6 pb-6 md:min-h-screen md:py-2">
         <PaperNote className="max-w-sm -rotate-2">
-          <h1 className="font-display text-[clamp(2.25rem,9vw,3.25rem)] font-semibold leading-[0.95] tracking-[-0.04em]">
-            unify
-          </h1>
-          <p className="mt-3 text-balance text-muted-foreground">
-            Your best team starts here
-          </p>
+          <div className="-translate-y-5">
+            <h1 className="font-display text-[clamp(2.25rem,9vw,3.25rem)] font-semibold leading-[0.95] tracking-[-0.04em]">
+              unify
+            </h1>
+            <p className="mt-3 text-balance text-muted-foreground">
+              Your best team starts here
+            </p>
+          </div>
         </PaperNote>
 
-        <form onSubmit={onJoin} className="mt-10 space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="code">Room code:</Label>
+        <form onSubmit={onJoin} className="[text-shadow:0_1px_3px_rgba(0,0,0,0.85)] mx-auto mt-8 w-full max-w-[21rem] space-y-3">
+          <div>
+            <Label htmlFor="code" className={FIELD_LABEL}>
+              Room code:
+            </Label>
             <div className="relative">
               <Input
                 id="code"
@@ -147,7 +162,7 @@ export function HomePage() {
                 onFocus={() => setFocusedField("code")}
                 onBlur={() => setFocusedField((f) => (f === "code" ? null : f))}
                 placeholder="ABC123"
-                className="h-12 pr-10 text-lg tracking-[0.3em]"
+                className={cn(FIELD_BOX, "tracking-[0.3em]")}
                 required
                 maxLength={ROOM_CODE_LENGTH}
                 autoComplete="off"
@@ -157,14 +172,16 @@ export function HomePage() {
               <PencilLine
                 aria-hidden="true"
                 className={cn(
-                  "pointer-events-none absolute right-3.5 top-1/2 size-4 -translate-y-1/2 text-primary transition-opacity duration-150",
+                  FIELD_ICON,
                   focusedField === "code" ? "opacity-100" : "opacity-0",
                 )}
               />
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="name">Your name:</Label>
+          <div>
+            <Label htmlFor="name" className={FIELD_LABEL}>
+              Your name:
+            </Label>
             <div className="relative">
               <Input
                 id="name"
@@ -173,7 +190,7 @@ export function HomePage() {
                 onFocus={() => setFocusedField("name")}
                 onBlur={() => setFocusedField((f) => (f === "name" ? null : f))}
                 placeholder="Name"
-                className="h-12 pr-9"
+                className={FIELD_BOX}
                 required
                 maxLength={MAX_NAME_LENGTH}
                 autoFocus={Boolean(code)}
@@ -182,19 +199,19 @@ export function HomePage() {
               <PencilLine
                 aria-hidden="true"
                 className={cn(
-                  "pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-primary transition-opacity duration-150",
+                  FIELD_ICON,
                   focusedField === "name" ? "opacity-100" : "opacity-0",
                 )}
               />
             </div>
           </div>
-          <div className="group relative">
-            <BookmarkTag className="pointer-events-none absolute -top-1 right-6 z-20 h-9 w-7 origin-top transition-transform duration-300 ease-in group-hover:scale-y-125" />
+          <div className="group relative !mt-5">
+            <BookmarkTag className="pointer-events-none absolute -top-1 right-5 z-20 h-8 w-6 origin-top transition-transform duration-300 ease-in group-hover:scale-y-125" />
             <Button
               type="submit"
               size="lg"
               disabled={loading || !canJoin}
-              className="h-11 w-full"
+              className="h-11 w-full text-xl [&_svg]:size-5"
             >
               {loading ? "Joining…" : "Join"}
               <ArrowRight />
@@ -202,17 +219,26 @@ export function HomePage() {
           </div>
         </form>
 
-        <div className="mt-4 space-y-3">
-          <GoogleAuthButton />
-          {!isAuthenticated && ready ? (
-            <p className="text-center text-xs text-muted-foreground">
-              Sign in with Google to join or host a room.
-            </p>
-          ) : null}
-        </div>
+        {/* Signing in belongs with the form; test mode is just a status, so it sits out of the way. */}
+        {isTestMode() ? null : (
+          <div className="[text-shadow:0_1px_3px_rgba(0,0,0,0.85)] mx-auto mt-3 w-full max-w-[21rem] space-y-3">
+            <GoogleAuthButton className={SIGN_IN_BOX} />
+            {!isAuthenticated && ready ? (
+              <p className="text-center text-lg text-white/85">
+                Sign in with Google to join or host a room.
+              </p>
+            ) : null}
+          </div>
+        )}
       </main>
 
-      <footer className="relative z-10 px-6 pb-5 text-center text-xs text-muted-foreground">
+      {isTestMode() ? (
+        <div className="[text-shadow:0_1px_3px_rgba(0,0,0,0.85)] relative z-10 mx-auto mb-3 w-full max-w-[21rem] px-6 md:absolute md:bottom-6 md:left-1/2 md:mb-0 md:-translate-x-1/2 md:px-0">
+          <GoogleAuthButton className={SIGN_IN_BOX} />
+        </div>
+      ) : null}
+
+      <footer className="[text-shadow:0_1px_3px_rgba(0,0,0,0.85)] relative z-10 px-6 pb-5 text-center text-xs text-white/80 md:absolute md:bottom-4 md:right-6 md:max-w-[15rem] md:p-0 md:text-right xl:max-w-none">
         {CREDITS.map((c) => (
           <p key={c.url}>
             3D model:{" "}

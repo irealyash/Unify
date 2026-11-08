@@ -55,7 +55,7 @@ const DEFAULT_ENV: Environment = {
 };
 
 /** What a player standing in each biome sees. */
-const BIOME_ENVS: Partial<Record<BiomeId, Environment>> = {
+export const BIOME_ENVS: Partial<Record<BiomeId, Environment>> = {
   // Daytime city: clear sky, light haze on the horizon, warm sun with shadows.
   night_city: {
     background: "#bcdcf5",
@@ -94,7 +94,7 @@ type BiomeSceneProps = {
 };
 
 /** Biomes with a finished themed scene. Others fall back to a plain tinted room. */
-const BIOME_SCENES: Partial<Record<BiomeId, (props: BiomeSceneProps) => React.JSX.Element>> = {
+export const BIOME_SCENES: Partial<Record<BiomeId, (props: BiomeSceneProps) => React.JSX.Element>> = {
   night_city: TokyoTown,
   highlands: Highlands,
   beach: Beach,
@@ -239,7 +239,7 @@ export function WorldScene({ selfId, spectator, frozen }: WorldSceneProps) {
 }
 
 /** Directional sun aimed at (and casting shadows around) the area being viewed. */
-function Sun({
+export function Sun({
   focusX,
   focusZ,
   extent,
