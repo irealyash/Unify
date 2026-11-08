@@ -206,7 +206,7 @@ function zScoreColumns(rows: number[][]): number[][] {
 }
 
 /** Last-resort preference order from multiple-choice answers alone. */
-function rulesPrefs(answers: QuizAnswers | undefined): BiomeId[] {
+export function rulesPrefs(answers: QuizAnswers | undefined): BiomeId[] {
   return BIOMES.map((b, index) => ({
     id: b.id,
     index,

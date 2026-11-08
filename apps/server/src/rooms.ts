@@ -91,6 +91,7 @@ export class RoomStore {
       mouth: "v",
       ...spawnPose(),
       connected: false,
+      bot: false,
       quiz: "answering",
       placement: null,
       socketId: null,
@@ -110,8 +111,8 @@ function spawnPose() {
 }
 
 export function toPublicPlayer(player: Player): PlayerState {
-  const { id, name, color, hat, mouth, x, z, rotY, connected, quiz, placement } = player;
-  return { id, name, color, hat, mouth, x, z, rotY, connected, quiz, placement };
+  const { id, name, color, hat, mouth, x, z, rotY, connected, bot, quiz, placement } = player;
+  return { id, name, color, hat, mouth, x, z, rotY, connected, bot, quiz, placement };
 }
 
 export function toSnapshot(room: Room): RoomSnapshot {

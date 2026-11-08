@@ -13,6 +13,8 @@ export const NETWORK_TICK_HZ = 15;
 
 export const MAX_NAME_LENGTH = 32;
 export const MAX_PLAYERS_PER_ROOM = 120;
+/** How many bots demo mode adds to a room at a time. */
+export const DEMO_BOT_COUNT = 10;
 
 /** Character colours, ordered around the colour wheel from red to pink. */
 export const PLAYER_COLORS = [
@@ -92,6 +94,8 @@ export type PlayerState = Pose & {
   hat: HatId;
   mouth: MouthId;
   connected: boolean;
+  /** A demo bot rather than a real person. */
+  bot: boolean;
   quiz: QuizStatus;
   /** Set once the room has been sorted. */
   placement: Placement | null;

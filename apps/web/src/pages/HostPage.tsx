@@ -1,8 +1,8 @@
-import { ArrowLeft, Play, Plus, Shuffle } from "lucide-react";
+import { ArrowLeft, Bot, Play, Plus, Shuffle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
-import { BIOMES, BIOME_BY_ID, type HostSession, type PlayerState, type SortMethod } from "@unify/shared";
+import { BIOMES, BIOME_BY_ID, DEMO_BOT_COUNT, type HostSession, type PlayerState, type SortMethod } from "@unify/shared";
 import { BookmarkTag } from "@/components/BookmarkTag";
 import { ModelCredits, OVER_SCENE_TEXT } from "@/components/PageExtras";
 import { Button } from "@/components/ui/button";
@@ -87,7 +87,7 @@ export function HostPage() {
     }
   }
 
-  async function run(event: "host:startQuiz" | "host:sort", failure: string) {
+  async function run(event: "host:addBots" | "host:startQuiz" | "host:sort", failure: string) {
     setBusy(true);
     try {
       await request(event);
@@ -201,6 +201,17 @@ export function HostPage() {
         </div>
 
         <div className="space-y-2 border-t border-border pt-4">
+          {stage === "lobby" || stage === "quiz" ? (
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => run("host:addBots", "Could not add bots")}
+              disabled={busy}
+            >
+              <Bot />
+              Demo mode: add {DEMO_BOT_COUNT} bots
+            </Button>
+          ) : null}
           {stage === "lobby" ? (
             <Button
               className="w-full"
@@ -265,6 +276,7 @@ function Roster({ roster, stage }: { roster: PlayerState[]; stage: string }) {
           <span className="h-2.5 w-2.5 rounded-full" style={{ background: p.color }} />
           <span className="truncate">{p.name}</span>
           <span className="ml-auto flex items-center gap-2">
+            {p.bot ? <span className="text-xs text-muted-foreground">bot</span> : null}
             {!p.connected ? <span className="text-xs text-muted-foreground">away</span> : null}
             {stage !== "lobby" ? <QuizBadge status={p.quiz} /> : null}
           </span>
@@ -280,6 +292,7 @@ const METHOD_LABELS: Record<SortMethod, { label: string; hint: string }> = {
   rebalanced: { label: "moved", hint: "First choice was full; placed in next-best biome" },
   rules: { label: "rules", hint: "AI unavailable; placed from answers" },
   filler: { label: "no quiz", hint: "Didn't submit; placed to balance groups" },
+  bot: { label: "bot", hint: "Demo bot with random answers; placed to even out the groups" },
 };
 
 /** Final groups, one section per biome, with how each person was placed. */

@@ -126,7 +126,9 @@ export type SortMethod =
   /** AI unavailable: placed from their multiple-choice answers. */
   | "rules"
   /** Never submitted the quiz: placed in the smallest group. */
-  | "filler";
+  | "filler"
+  /** A demo bot: placed after the real players to even out the groups. */
+  | "bot";
 
 export type Placement = {
   biome: BiomeId;

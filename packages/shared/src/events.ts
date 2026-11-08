@@ -44,6 +44,8 @@ export interface ClientToServerEvents {
   "player:customize": (req: Customisation, ack: Ack<null>) => void;
   /** Leave the room on purpose (vs. a dropped connection). */
   "player:leave": (ack: Ack<null>) => void;
+  /** Demo mode: host adds a batch of bots that answer the quiz at random. */
+  "host:addBots": (ack: Ack<null>) => void;
   /** Host moves the room from the lobby into the quiz. */
   "host:startQuiz": (ack: Ack<null>) => void;
   /** Player submits their questionnaire (once; the server builds their profile). */

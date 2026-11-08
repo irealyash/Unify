@@ -323,6 +323,7 @@ function renderPlayer(
       labelScale={ctx.spectator ? (ctx.zoomed ? 1.3 : 2.4) : 1}
       clickable={ctx.stage === "biomes" && !ctx.spectator}
       ground={ctx.stage === "biomes" && p.placement ? groundFor(p.placement.biome) : undefined}
+      obstacles={p.bot && ctx.stage === "biomes" && p.placement ? obstaclesFor(p.placement.biome) : undefined}
     />
   );
 }

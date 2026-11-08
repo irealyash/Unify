@@ -49,6 +49,7 @@ export function PreviewPage() {
           z: area.cz + (isSelf && start ? start.z : spot.z),
           rotY: 0,
           connected: true,
+          bot: false,
           quiz: "ready",
           placement: { biome: b.id, method: "vector", reason: "Preview" },
         });

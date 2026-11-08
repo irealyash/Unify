@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import { Server } from "socket.io";
 import { NETWORK_TICK_HZ } from "@unify/shared";
 import { getBiomeVectors } from "./ai/biomes";
+import { startBotWalking } from "./bots";
 import { errorMessage } from "./ai/gemini";
 import {
   registerHandlers,
@@ -29,6 +30,7 @@ const io: IO = new Server(httpServer, {
 const store = new RoomStore();
 registerHandlers(io, store);
 startNetworkTick(io, store, NETWORK_TICK_HZ);
+startBotWalking(store, NETWORK_TICK_HZ);
 startRoomCleanup(io, store, 60 * 60 * 1000);
 
 // Warm the biome vectors so the first sort is fast; a failure here is retried at sort time.

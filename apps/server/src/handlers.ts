@@ -22,6 +22,7 @@ import {
 import { getBiomeVectors, type BiomeVectors } from "./ai/biomes";
 import { errorMessage, geminiLimit, withRetry } from "./ai/gemini";
 import { chooseBiome } from "./ai/sorter";
+import { addBots, answerBots, botSpot, placeBots } from "./bots";
 import { persist } from "./db";
 import { matchSummary } from "./match";
 import { buildProfile } from "./quiz";
@@ -149,6 +150,19 @@ export function registerHandlers(io: IO, store: RoomStore) {
       }),
     );
 
+    socket.on("host:addBots", (ack) =>
+      guard(ack, () => {
+        const room = hostedRoom();
+        if (!JOINABLE_STAGES.includes(room.stage)) throw new Error("This room has already been sorted");
+        const added = addBots(room, store);
+        if (room.stage === "quiz") answerBots(room);
+        room.lastActiveAt = Date.now();
+        for (const bot of added) broadcastPlayer(room, bot);
+        console.log(`[room ${room.code}] added ${added.length} demo bots (${room.players.size} players)`);
+        return null;
+      }),
+    );
+
     socket.on("host:startQuiz", (ack) =>
       guard(ack, () => {
         const room = hostedRoom();
@@ -159,6 +173,7 @@ export function registerHandlers(io: IO, store: RoomStore) {
         room.lastActiveAt = Date.now();
         persist.room(room);
         io.to(channel(room.code)).emit("room:stage", { stage: room.stage });
+        for (const bot of answerBots(room)) broadcastPlayer(room, bot);
         console.log(`[room ${room.code}] quiz started with ${connected} players`);
         return null;
       }),
@@ -425,7 +440,8 @@ async function runSort(io: IO, room: Room) {
     console.warn(`[sort ${room.code}] biome vectors unavailable, using fallbacks: ${errorMessage(err)}`);
   }
 
-  const candidates: SortCandidate[] = players().map((p) => ({
+  // Only real people go through the sorter, so demo bots can't change where they end up.
+  const candidates: SortCandidate[] = players().filter((p) => !p.bot).map((p) => ({
     id: p.id,
     name: p.name,
     answers: p.answers,
@@ -452,6 +468,8 @@ async function runSort(io: IO, room: Room) {
     result = await sortStudents(candidates, { biomeVectors: null });
   }
 
+  placeBots(room, result.placements);
+
   // Place each group in a loose spiral in the middle of its biome.
   const placedPerBiome = new Map<string, number>();
   for (const player of players()) {
@@ -462,12 +480,12 @@ async function runSort(io: IO, room: Room) {
     const slot = placedPerBiome.get(placement.biome) ?? 0;
     placedPerBiome.set(placement.biome, slot + 1);
     // Open spots from the biome's map (clients also nudge anyone who'd overlap a wall).
-    const spot = spawnOffset(placement.biome, slot);
+    const spot = player.bot ? botSpot(placement.biome, slot) : spawnOffset(placement.biome, slot);
     player.x = area.cx + spot.x;
     player.z = area.cz + spot.z;
     player.rotY = 0;
     room.dirty.delete(player.id);
-    persist.placement(room.id, player.id, placement);
+    if (!player.bot) persist.placement(room.id, player.id, placement);
   }
 
   const summary = result.details
