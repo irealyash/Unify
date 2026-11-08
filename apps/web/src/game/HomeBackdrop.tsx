@@ -41,6 +41,16 @@ const VIEWPOINTS: Partial<Record<BiomeId, Viewpoint>> = {
  * It's only decoration: if 3D isn't available, the page just keeps its plain background.
  */
 export function HomeBackdrop({ biome = "night_city" }: { biome?: BiomeId }) {
+  // It takes a moment to build, so let the page in front of it appear first.
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const id = window.setTimeout(() => setShow(true), 50);
+    return () => window.clearTimeout(id);
+  }, []);
+  return show ? <Backdrop biome={biome} /> : null;
+}
+
+function Backdrop({ biome }: { biome: BiomeId }) {
   const [ready, setReady] = useState(false);
   const Scene = BIOME_SCENES[biome];
   const env = BIOME_ENVS[biome];

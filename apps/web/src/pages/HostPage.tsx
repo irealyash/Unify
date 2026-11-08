@@ -1,18 +1,21 @@
-import { Play, Plus, Shuffle } from "lucide-react";
+import { ArrowLeft, Play, Plus, Shuffle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import { BIOMES, type HostSession, type PlayerState, type SortMethod } from "@unify/shared";
 import { BookmarkTag } from "@/components/BookmarkTag";
 import { GoogleAuthButton } from "@/components/GoogleAuthButton";
+import { ModelCredits, OVER_SCENE_TEXT, TestModeBox } from "@/components/PageExtras";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { HomeBackdrop } from "@/game/HomeBackdrop";
 import { SortingOverlay } from "@/game/SortingOverlay";
 import { useRoom, useRoomEvents } from "@/game/store";
 import { WorldScene } from "@/game/WorldScene";
 import { useGoogleAuth } from "@/lib/auth";
 import { onEveryConnect, request } from "@/lib/socket";
 import { hostStorage } from "@/lib/storage";
+import { isTestMode } from "@/lib/testMode";
 import { cn } from "@/lib/utils";
 
 export function HostPage() {
@@ -79,32 +82,47 @@ export function HostPage() {
   if (!session) {
     const canHost = isAuthenticated && authReady;
     return (
-      <div className="flex min-h-full items-center justify-center px-6">
-        <Card className="w-full max-w-md">
+      <div className="relative flex min-h-full flex-col items-center justify-center overflow-hidden px-6">
+        <HomeBackdrop />
+        <Button
+          asChild
+          variant="ghost"
+          size="sm"
+          className={cn(OVER_SCENE_TEXT, "absolute left-4 top-5 z-10 text-lg [&_svg]:size-5")}
+        >
+          <Link to="/">
+            <ArrowLeft />
+            Back
+          </Link>
+        </Button>
+        {/* Sized so the buttons inside match the home page's. */}
+        <Card className="relative z-10 w-full max-w-[23.625rem]">
           <CardHeader>
             <CardTitle className="text-2xl">Host a room</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <Button
               size="lg"
-              className="w-full"
+              className="h-11 w-full text-xl [&_svg]:size-5"
               onClick={createRoom}
               disabled={creating || !canHost}
             >
               <Plus />
               {creating ? "Creating…" : "Create room"}
             </Button>
-            <GoogleAuthButton />
+            {isTestMode() ? null : <GoogleAuthButton className="h-11" />}
             {!isAuthenticated && authReady ? (
               <p className="text-center text-xs text-muted-foreground">
                 Sign in with Google to host a room.
               </p>
             ) : null}
-            <Button asChild variant="ghost" className="w-full">
+            <Button asChild variant="ghost" className="h-11 w-full text-xl">
               <Link to="/">Join a room instead</Link>
             </Button>
           </CardContent>
         </Card>
+        <TestModeBox />
+        <ModelCredits />
       </div>
     );
   }

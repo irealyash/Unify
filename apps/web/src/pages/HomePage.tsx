@@ -9,6 +9,7 @@ import {
 } from "@unify/shared";
 import { BookmarkTag } from "@/components/BookmarkTag";
 import { GoogleAuthButton } from "@/components/GoogleAuthButton";
+import { AUTH_BOX, ModelCredits, TestModeBox } from "@/components/PageExtras";
 import { PaperNote } from "@/components/PaperNote";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +17,6 @@ import { Label } from "@/components/ui/label";
 import { HomeBackdrop } from "@/game/HomeBackdrop";
 import { useGoogleAuth } from "@/lib/auth";
 import { request } from "@/lib/socket";
-import { CREDITS } from "@/credits";
 import { playerStorage } from "@/lib/storage";
 import { TEST_MODE_AVAILABLE, isTestMode, setTestMode } from "@/lib/testMode";
 import { cn } from "@/lib/utils";
@@ -31,7 +31,6 @@ function roomCodeFromSearch(params: URLSearchParams) {
   return normalized;
 }
 
-const SIGN_IN_BOX = "h-11 bg-[rgba(28,21,16,0.6)] py-0 backdrop-blur-sm";
 const FIELD_LABEL = "mb-1.5 block h-6 text-xl leading-6 text-white";
 const FIELD_BOX = "h-11 pr-10 text-base";
 const FIELD_ICON =
@@ -82,16 +81,9 @@ export function HomePage() {
 
   const canJoin = isAuthenticated && ready;
 
-  // The 3D backdrop takes a moment to build, so let the form appear first.
-  const [showBackdrop, setShowBackdrop] = useState(false);
-  useEffect(() => {
-    const id = window.setTimeout(() => setShowBackdrop(true), 50);
-    return () => window.clearTimeout(id);
-  }, []);
-
   return (
     <div className="relative min-h-full overflow-hidden">
-      {showBackdrop ? <HomeBackdrop /> : null}
+      <HomeBackdrop />
       <div
         className="pointer-events-none absolute inset-0"
         style={{
@@ -107,17 +99,17 @@ export function HomePage() {
         <div className="flex items-center gap-3">
           {/* TEMP (testing): jump straight into The City scene. Dev builds only. */}
           {import.meta.env.DEV ? (
-            <Button asChild variant="ghost" size="sm" className="text-lg">
+            <Button asChild variant="ghost" size="sm" className="text-xl">
               <Link to="/preview/night_city">Go to The City</Link>
             </Button>
           ) : null}
           <div className="group relative">
-            <BookmarkTag className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[112px] w-[148px] origin-top -translate-x-1/2 -translate-y-1/2 transition-transform duration-300 ease-in group-hover:scale-y-125" />
+            <BookmarkTag className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[132px] w-[176px] origin-top -translate-x-1/2 -translate-y-1/2 transition-transform duration-300 ease-in group-hover:scale-y-125" />
             <Button
               asChild
               variant="ghost"
               size="sm"
-              className="text-lg hover:bg-transparent"
+              className="text-xl hover:bg-transparent"
             >
               <Link to="/host">Host Room</Link>
             </Button>
@@ -129,7 +121,7 @@ export function HomePage() {
               size="sm"
               aria-pressed={isTestMode()}
               onClick={() => setTestMode(!isTestMode())}
-              className="ml-3 text-lg"
+              className="ml-3 text-xl"
             >
               {isTestMode() ? "Test mode: on" : "Test mode"}
             </Button>
@@ -222,7 +214,7 @@ export function HomePage() {
         {/* Signing in belongs with the form; test mode is just a status, so it sits out of the way. */}
         {isTestMode() ? null : (
           <div className="[text-shadow:0_1px_3px_rgba(0,0,0,0.85)] mx-auto mt-3 w-full max-w-[21rem] space-y-3">
-            <GoogleAuthButton className={SIGN_IN_BOX} />
+            <GoogleAuthButton className={AUTH_BOX} />
             {!isAuthenticated && ready ? (
               <p className="text-center text-lg text-white/85">
                 Sign in with Google to join or host a room.
@@ -232,23 +224,8 @@ export function HomePage() {
         )}
       </main>
 
-      {isTestMode() ? (
-        <div className="[text-shadow:0_1px_3px_rgba(0,0,0,0.85)] relative z-10 mx-auto mb-3 w-full max-w-[21rem] px-6 md:absolute md:bottom-6 md:left-1/2 md:mb-0 md:-translate-x-1/2 md:px-0">
-          <GoogleAuthButton className={SIGN_IN_BOX} />
-        </div>
-      ) : null}
-
-      <footer className="[text-shadow:0_1px_3px_rgba(0,0,0,0.85)] relative z-10 px-6 pb-5 text-center text-xs text-white/80 md:absolute md:bottom-4 md:right-6 md:max-w-[15rem] md:p-0 md:text-right xl:max-w-none">
-        {CREDITS.map((c) => (
-          <p key={c.url}>
-            3D model:{" "}
-            <a href={c.url} target="_blank" rel="noreferrer" className="underline-offset-2 hover:underline">
-              {c.work}
-            </a>{" "}
-            by {c.author} ({c.license}) via {c.source}
-          </p>
-        ))}
-      </footer>
+      <TestModeBox />
+      <ModelCredits />
     </div>
   );
 }

@@ -25,6 +25,7 @@ import { libraryObstacles } from "./biomes/libraryMap";
 import { TokyoTown } from "./biomes/TokyoTown";
 import { tokyoTownObstacles } from "./biomes/tokyoTownMap";
 import type { GroundHeight, Obstacles } from "./collision";
+import { GridBackdrop } from "./GridBackdrop";
 import type { CameraRig } from "./LocalPlayer";
 import { LocalPlayer } from "./LocalPlayer";
 import { damp } from "./math";
@@ -203,6 +204,9 @@ export function WorldScene({ selfId, spectator, frozen }: WorldSceneProps) {
       <Sun focusX={focus.cx} focusZ={focus.cz} extent={shadowExtent} {...env.sun} />
 
       {spectator ? <SpectatorCamera wide={inBiomes} /> : null}
+
+      {/* The lobby floats in front of this grid, and so do the biomes in the host's overview. */}
+      {!inBiomes || spectator ? <GridBackdrop background={BG} /> : null}
 
       {inBiomes ? (
         biomes.map((b) => {
