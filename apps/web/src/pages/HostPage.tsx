@@ -3,16 +3,19 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import { BIOMES, type HostSession, type PlayerState, type SortMethod } from "@unify/shared";
+import { GoogleAuthButton } from "@/components/GoogleAuthButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SortingOverlay } from "@/game/SortingOverlay";
 import { useRoom, useRoomEvents } from "@/game/store";
 import { WorldScene } from "@/game/WorldScene";
+import { useGoogleAuth } from "@/lib/auth";
 import { onEveryConnect, request } from "@/lib/socket";
 import { hostStorage } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 
 export function HostPage() {
+  const { isAuthenticated, ready: authReady, ensureSocketAuth } = useGoogleAuth();
   const [session, setSession] = useState<HostSession | null>(() => hostStorage.load());
   const [creating, setCreating] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -44,8 +47,13 @@ export function HostPage() {
   }, [session]);
 
   async function createRoom() {
+    if (!isAuthenticated) {
+      toast.error("Sign in with Google to host a room");
+      return;
+    }
     setCreating(true);
     try {
+      await ensureSocketAuth();
       const created = await request("host:create");
       hostStorage.save(created);
       setSession(created);
@@ -68,6 +76,7 @@ export function HostPage() {
   }
 
   if (!session) {
+    const canHost = isAuthenticated && authReady;
     return (
       <div className="flex min-h-full items-center justify-center px-6">
         <Card className="w-full max-w-md">
@@ -79,10 +88,21 @@ export function HostPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button size="lg" className="w-full" onClick={createRoom} disabled={creating}>
+            <Button
+              size="lg"
+              className="w-full"
+              onClick={createRoom}
+              disabled={creating || !canHost}
+            >
               <Plus />
               {creating ? "Creating…" : "Create room"}
             </Button>
+            <GoogleAuthButton />
+            {!isAuthenticated && authReady ? (
+              <p className="text-center text-xs text-muted-foreground">
+                Sign in with Google to host a room.
+              </p>
+            ) : null}
             <Button asChild variant="ghost" className="w-full">
               <Link to="/">Join a room instead</Link>
             </Button>

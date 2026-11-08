@@ -1,26 +1,48 @@
 import { ArrowRight } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { MAX_NAME_LENGTH, ROOM_CODE_LENGTH, normalizeRoomCode } from "@unify/shared";
+import { GoogleAuthButton } from "@/components/GoogleAuthButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useGoogleAuth } from "@/lib/auth";
 import { request } from "@/lib/socket";
 import { playerStorage } from "@/lib/storage";
+
+/** Join links use `?code=ABC123`. Auth0 redirects with a long OAuth `code` — ignore those. */
+function roomCodeFromSearch(params: URLSearchParams) {
+  if (params.has("state")) return ""; // Auth0 callback always includes state
+  const raw = params.get("code");
+  if (!raw) return "";
+  const normalized = normalizeRoomCode(raw);
+  if (normalized.length !== ROOM_CODE_LENGTH) return "";
+  return normalized;
+}
 
 export function HomePage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const [code, setCode] = useState(() => normalizeRoomCode(params.get("code") ?? ""));
+  const { isAuthenticated, user, ready, ensureSocketAuth } = useGoogleAuth();
+  const [code, setCode] = useState(() => roomCodeFromSearch(params));
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (user?.name && !name) setName(user.name);
+  }, [user, name]);
+
   async function onJoin(e: React.FormEvent) {
     e.preventDefault();
+    if (!isAuthenticated) {
+      toast.error("Sign in with Google to join a room");
+      return;
+    }
     const roomCode = normalizeRoomCode(code);
     setLoading(true);
     try {
+      await ensureSocketAuth();
       const previous = playerStorage.load(roomCode);
       const result = await request("player:join", {
         code: roomCode,
@@ -35,6 +57,8 @@ export function HomePage() {
       setLoading(false);
     }
   }
+
+  const canJoin = isAuthenticated && ready;
 
   return (
     <div className="relative min-h-full overflow-hidden">
@@ -80,6 +104,7 @@ export function HomePage() {
               maxLength={ROOM_CODE_LENGTH}
               autoComplete="off"
               autoFocus={!code}
+              disabled={!canJoin}
             />
           </div>
           <div className="space-y-2">
@@ -92,13 +117,23 @@ export function HomePage() {
               required
               maxLength={MAX_NAME_LENGTH}
               autoFocus={Boolean(code)}
+              disabled={!canJoin}
             />
           </div>
-          <Button type="submit" size="lg" disabled={loading} className="h-11 w-full">
+          <Button type="submit" size="lg" disabled={loading || !canJoin} className="h-11 w-full">
             {loading ? "Joining…" : "Join"}
             <ArrowRight />
           </Button>
         </form>
+
+        <div className="mt-4 space-y-3">
+          <GoogleAuthButton />
+          {!isAuthenticated && ready ? (
+            <p className="text-center text-xs text-muted-foreground">
+              Sign in with Google to join or host a room.
+            </p>
+          ) : null}
+        </div>
       </main>
     </div>
   );

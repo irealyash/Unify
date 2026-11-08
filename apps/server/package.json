@@ -12,6 +12,7 @@
   "dependencies": {
     "@google/genai": "^3.0.0",
     "@unify/shared": "*",
+    "jose": "^6.2.15",
     "postgres": "^4.1.0",
     "socket.io": "^4.8.4",
     "tsx": "^4.23.15",

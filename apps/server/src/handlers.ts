@@ -17,6 +17,7 @@ import {
 import { getBiomeVectors, type BiomeVectors } from "./ai/biomes";
 import { errorMessage, geminiLimit, withRetry } from "./ai/gemini";
 import { chooseBiome } from "./ai/sorter";
+import { type AuthUser, isAuth0Configured, upsertUser, verifyIdToken } from "./auth";
 import { persist } from "./db";
 import { buildProfile } from "./quiz";
 import { sortStudents, type SortCandidate, type SortResult } from "./sort";
@@ -26,6 +27,7 @@ export type SocketData = {
   role?: "host" | "player";
   code?: string;
   playerId?: string;
+  user?: AuthUser;
 };
 
 export type IO = Server<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>;
@@ -68,9 +70,45 @@ function guard<T>(ack: unknown, run: () => T) {
   }
 }
 
+async function guardAsync<T>(ack: unknown, run: () => Promise<T>) {
+  const reply = typeof ack === "function" ? (ack as Ack<T>) : () => {};
+  try {
+    reply({ ok: true, data: await run() });
+  } catch (err) {
+    const error =
+      err instanceof z.ZodError
+        ? (err.issues[0]?.message ?? "Invalid request")
+        : err instanceof Error
+          ? err.message
+          : "Something went wrong";
+    reply({ ok: false, error });
+  }
+}
+
+function requireSignedIn(socket: AppSocket) {
+  if (!isAuth0Configured()) return;
+  if (!socket.data.user) throw new Error("Sign in with Google to continue");
+}
+
 export function registerHandlers(io: IO, store: RoomStore) {
   const broadcastPlayer = (room: Room, player: Player) =>
     io.to(channel(room.code)).emit("player:upsert", toPublicPlayer(player));
+
+  io.use(async (socket, next) => {
+    const token = (socket.handshake.auth as { token?: unknown } | undefined)?.token;
+    if (typeof token === "string" && token.length > 0 && isAuth0Configured()) {
+      try {
+        const user = await verifyIdToken(token);
+        socket.data.user = user;
+        void upsertUser(user).catch((err: unknown) => {
+          console.error("[auth] upsert failed:", err instanceof Error ? err.message : err);
+        });
+      } catch (err) {
+        console.warn("[auth] invalid socket token:", err instanceof Error ? err.message : err);
+      }
+    }
+    next();
+  });
 
   io.on("connection", (socket: AppSocket) => {
     /** The room this socket hosts, or throws. */
@@ -93,11 +131,12 @@ export function registerHandlers(io: IO, store: RoomStore) {
     };
 
     socket.on("host:create", (ack) =>
-      guard(ack, () => {
+      void guardAsync(ack, async () => {
+        requireSignedIn(socket);
         const room = store.create();
         attach(socket, room, "host");
         persist.room(room);
-        console.log(`[room ${room.code}] created`);
+        console.log(`[room ${room.code}] created by ${socket.data.user?.email ?? "host"}`);
         return { code: room.code, hostToken: room.hostToken };
       }),
     );
@@ -166,7 +205,8 @@ export function registerHandlers(io: IO, store: RoomStore) {
     );
 
     socket.on("player:join", (req, ack) =>
-      guard(ack, () => {
+      void guardAsync(ack, async () => {
+        requireSignedIn(socket);
         const { code, name, playerToken } = joinSchema.parse(req);
         const room = store.get(normalizeRoomCode(code));
         if (!room) throw new Error("No room found for that code");

@@ -14,6 +14,26 @@ const serverUrl = import.meta.env.VITE_SERVER_URL as string | undefined;
 
 export const socket: AppSocket = serverUrl ? io(serverUrl) : io();
 
+/** Attach Auth0 ID token so join/host can require Google sign-in. Reconnects when needed. */
+export function setSocketAuthToken(token: string | null): Promise<void> {
+  const next = token ? { token } : {};
+  const prev = (socket.auth as { token?: string } | undefined)?.token ?? null;
+  const changed = (token ?? null) !== prev;
+  socket.auth = next;
+
+  if (!changed && socket.connected) return Promise.resolve();
+
+  return new Promise((resolve) => {
+    const done = () => {
+      socket.off("connect", done);
+      resolve();
+    };
+    socket.once("connect", done);
+    if (socket.connected) socket.disconnect().connect();
+    else socket.connect();
+  });
+}
+
 const REQUEST_TIMEOUT_MS = 8000;
 
 type Events = ClientToServerEvents;
