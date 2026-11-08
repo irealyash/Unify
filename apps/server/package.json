@@ -1,0 +1,23 @@
+{
+  "name": "@unify/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=../../.env src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "db:setup": "tsx --env-file-if-exists=../../.env src/setup-db.ts"
+  },
+  "dependencies": {
+    "@google/genai": "^3.0.0",
+    "@unify/shared": "*",
+    "postgres": "^4.1.0",
+    "socket.io": "^4.8.4",
+    "tsx": "^4.23.15",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2"
+  }
+}

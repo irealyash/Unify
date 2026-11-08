@@ -1,0 +1,178 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0b0d17;
+  --foreground: #eef0ff;
+  --card: #12152a;
+  --card-foreground: #eef0ff;
+  --primary: #8b8cff;
+  --primary-foreground: #0b0d17;
+  --secondary: #1b1f3a;
+  --secondary-foreground: #eef0ff;
+  --muted: #1b1f3a;
+  --muted-foreground: #9aa0c7;
+  --accent: #8b8cff;
+  --accent-foreground: #0b0d17;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #262b4d;
+  --input: #262b4d;
+  --ring: #8b8cff;
+  --radius: 0.75rem;
+  --font-body: "IBM Plex Sans";
+  --font-display: "Sora";
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 8px);
+  --font-sans: var(--font-body), system-ui, sans-serif;
+  --font-display: var(--font-display), system-ui, sans-serif;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body,
+  #root {
+    @apply h-full;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-body), system-ui, sans-serif;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display), system-ui, sans-serif;
+    @apply tracking-tight;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display), system-ui, sans-serif;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Light cards that float over the white 3D room. */
+@utility hud {
+  background: rgb(255 255 255 / 0.88);
+  color: #0f1222;
+  border: 1px solid #e3e5ea;
+  box-shadow: 0 6px 20px -10px rgb(15 18 34 / 0.25);
+  backdrop-filter: blur(8px);
+}
+
+@utility hud-muted {
+  color: #6b7080;
+}
+
+/* ── Sorting + reveal animations ─────────────────────────────── */
+@keyframes unify-orbit {
+  from {
+    transform: rotate(var(--start)) translateX(var(--r));
+  }
+  to {
+    transform: rotate(calc(var(--start) + 360deg)) translateX(var(--r));
+  }
+}
+
+@keyframes unify-fly {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--dx), var(--dy)) scale(0.5);
+    opacity: 0;
+  }
+}
+
+@keyframes unify-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+@keyframes unify-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes unify-pop {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.unify-orbit {
+  animation: unify-orbit 2.4s linear infinite;
+}
+.unify-fly {
+  animation: unify-fly 2.4s ease-in infinite;
+}
+.unify-pulse {
+  animation: unify-pulse 1.2s ease-in-out infinite;
+}
+.unify-fade-in {
+  animation: unify-fade-in 0.35s ease-out both;
+}
+.unify-pop {
+  animation: unify-pop 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .unify-orbit,
+  .unify-fly,
+  .unify-pulse,
+  .unify-pop {
+    animation: none;
+  }
+}
