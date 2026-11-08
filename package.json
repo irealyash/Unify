@@ -11,6 +11,7 @@
     "dev:server": "npm run dev -w @unify/server",
     "dev:web": "npm run dev -w @unify/web",
     "build": "npm run build -w @unify/web",
+    "start": "npm run start -w @unify/server",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "db:setup": "npm run db:setup -w @unify/server"
   },
