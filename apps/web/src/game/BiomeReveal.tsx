@@ -25,7 +25,7 @@ export function BiomeReveal({ self, teammates, onClose }: BiomeRevealProps) {
           <p className="text-[15px] leading-relaxed text-[#3a3f55]">“{self.placement.reason}”</p>
 
           <div>
-            <div className="mb-2 text-xs font-medium uppercase tracking-wider text-[#8a8fa0]">
+            <div className="mb-2 text-xs font-medium tracking-wider text-[#8a8fa0]">
               Your group · {teammates.length + 1}
             </div>
             <div className="flex flex-wrap gap-1.5">
