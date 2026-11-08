@@ -18,11 +18,11 @@ const plexSans = IBM_Plex_Sans({
 
 export const metadata: Metadata = {
   title: {
-    default: "Mutual — Find your people",
+    default: "Mutual — UBC group project biomes",
     template: "%s · Mutual",
   },
   description:
-    "Reciprocal people discovery powered by AI. Meet others who fit what you seek—and who seek someone like you.",
+    "Enter a class code, answer a short working-style quiz, and get paired into biomes with classmates who work like you.",
   icons: { icon: "/favicon.ico" },
 };
 
@@ -30,7 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${sora.variable} ${plexSans.variable} dark h-full`}
+      className={`${sora.variable} ${plexSans.variable} h-full`}
       suppressHydrationWarning
       data-scroll-behavior="smooth"
     >

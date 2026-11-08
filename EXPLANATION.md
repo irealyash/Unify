@@ -1,17 +1,19 @@
 # Mutual — System Explanation
 
-This document explains how Mutual works end-to-end: database, API keys, embeddings, discovery lists, AI profile assistants, auth, messaging, and UBC verification.
+Mutual pairs UBC classmates for group projects by working style. No accounts, no chat, no friend graph — just a shared group code, a short quiz, embeddings, and biome assignment.
 
 ---
 
-## 1. What Mutual is
+## 1. What Mutual is now
 
-Mutual is a reciprocal people-discovery app built around two questions:
+1. Someone creates a **group** at `/create-group` (name, description, unique code, customizable quiz).
+2. Classmates open `/`, type the **group code** + their **official name**, and join that pool.
+3. They answer **multiple-choice** working-style questions plus an optional **free-write**.
+4. Answers are turned into a **working-style text**, embedded with Gemini, and stored as a vector.
+5. Each person is assigned to the nearest **biome** (centroid vector) for that group by cosine similarity.
+6. They land on `/biome/[id]` — a placeholder 3D-style world with a **Members** list of everyone in that biome.
 
-1. **Who are you?** → stored as `self_text`, embedded as `self_embedding` (`V_self`)
-2. **Who are you looking for?** → stored as `seeking_text`, embedded as `seeking_embedding` (`V_seeking`)
-
-Matching is **not** tag-based. Scores come from **real vector similarity** between those embeddings. LLMs never invent match percentages.
+There is **no user database**, signup, Google login, messaging, or discovery feeds.
 
 ---
 
@@ -20,383 +22,168 @@ Matching is **not** tag-based. Scores come from **real vector similarity** betwe
 | Layer | Technology |
 |---|---|
 | App framework | Next.js App Router (TypeScript) |
-| UI | React, Tailwind CSS, Framer Motion, Radix/shadcn-style components |
-| Auth | Clerk (Google OAuth only) |
+| UI | React, Tailwind CSS, Framer Motion, Radix-style primitives |
+| Session | HttpOnly cookie (`mutual_participant`) — no Clerk |
 | Database | Neon PostgreSQL + **pgvector** |
 | ORM | Drizzle |
-| AI embeddings + chat | Google Gemini (`@google/genai`) |
-| Realtime | Ably (token-auth from server) |
-| Client data | TanStack Query + Zustand |
+| Embeddings | Google Gemini `gemini-embedding-001` (768-d) |
 | Validation | Zod |
 | Hosting target | Vercel |
 
 ---
 
-## 3. Where the database is
+## 3. Product flow
 
-- **Provider:** [Neon](https://console.neon.tech)
-- **Connection:** `DATABASE_URL` in `.env.local`
-- **Vector extension:** `CREATE EXTENSION IF NOT EXISTS vector;`
-- **Schema source of truth:** `src/lib/db/schema.ts`
-- **SQL migration:** `drizzle/0001_init.sql`
-- **Client:** `src/lib/db/index.ts` (Neon HTTP + Drizzle)
+```
+/create-group  →  POST /api/groups  →  group + default questions + biome centroids
+       ↓
+share code with class
+       ↓
+/  (code + official name)  →  POST /api/groups/join  →  cookie session
+       ↓
+/quiz  →  POST /api/quiz/submit  →  embed working style → nearest biome
+       ↓
+/biome/[id]  →  GET /api/biomes/[id]  →  member roster panel
+```
 
-### Important: embeddings are NOT on `users`
+### Routes
 
-Identity lives on **`users`**.  
-Profile text + vectors live on **`user_profiles`**.
+| Path | Purpose |
+|---|---|
+| `/` | Join with group code + official name |
+| `/create-group` | Create group, edit/remove/add quiz questions |
+| `/quiz` | Answer that group's questions |
+| `/biome/[id]` | Biome placeholder + members list (top-right) |
+
+### APIs
+
+| Method | Path | Purpose |
+|---|---|---|
+| `POST` | `/api/groups` | Create group (+ optional custom code/questions) |
+| `GET` | `/api/groups/[code]` | Fetch group + questions |
+| `POST` | `/api/groups/join` | Join pool; set participant cookie |
+| `GET` | `/api/session` | Current participant + quiz for cookie |
+| `POST` | `/api/quiz/submit` | Save answers, embed, assign biome |
+| `GET` | `/api/biomes/[id]` | Biome details + member names |
+
+---
+
+## 4. Database (Neon + pgvector)
+
+Schema source of truth: `src/lib/db/schema.ts`
 
 | Table | Role |
 |---|---|
-| `users` | Clerk link, username, avatar, UBC claim/verified flags |
-| `user_profiles` | `self_text`, `seeking_text`, `public_summary`, **`self_embedding`**, **`seeking_embedding`**, versions |
-| `profile_versions` | Undo history for self/seeking text |
-| `profile_assistant_messages` | Separate chat histories for the two AI assistants |
-| `friendships` | Friend request graph (canonical low/high user ids) |
-| `conversations` / `messages` | Chat after friendship accepted |
-| `notifications` | Persistent in-app notifications |
-| `ubc_verifications` | Private education email verification records |
-| `blocked_users` | Blocks (excluded from discovery) |
+| `groups` | Unique code, name, description |
+| `group_questions` | Per-group MCQ / free-text prompts + option JSON |
+| `biomes` | Named worlds per group + `centroid_embedding` vector(768) |
+| `participants` | Official name, cookie session token, working-style text + embedding, assigned biome |
+| `participant_answers` | Selected option / free-text per question |
 
-### Embedding columns (the ones you look for)
+### Matching fields that matter
 
-In Neon → table **`user_profiles`**:
+On **`participants`**:
 
 | Column | Meaning |
 |---|---|
-| `self_embedding` | `vector(768)` for “who you are” |
-| `seeking_embedding` | `vector(768)` for “who you’re looking for” |
-| `embedding_model` | e.g. `gemini-embedding-001` |
-| `self_text` / `seeking_text` | Source natural-language profiles |
-| `self_version` / `seeking_version` | Optimistic concurrency + undo |
+| `working_style_text` | Natural-language blend of MCQ hints + free write |
+| `embedding` | `vector(768)` of that text |
+| `biome_id` | Assigned biome after quiz |
+
+On **`biomes`**:
+
+| Column | Meaning |
+|---|---|
+| `style_summary` | Seed text describing that working-style cluster |
+| `centroid_embedding` | Embedding of `style_summary` (nearest-neighbor target) |
+| `theme_key` | Visual theme for the placeholder biome UI |
+
+Default biomes (created with every group): Forest Focus, Canyon Sprint, Meadow Collab, Summit Solo, River Flow, Forge Builders — see `src/lib/groups/defaults.ts`.
 
 ---
 
-## 4. API keys / environment variables
+## 5. Environment variables
 
 Copy `.env.example` → `.env.local`. Never commit real secrets.
 
-| Variable | Service | Purpose |
-|---|---|---|
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk | Browser auth |
-| `CLERK_SECRET_KEY` | Clerk | Server auth (must be full key) |
-| `CLERK_WEBHOOK_SIGNING_SECRET` | Clerk | Webhook verification |
-| `DATABASE_URL` | Neon | Postgres connection |
-| `GEMINI_API_KEY` | Google AI Studio | Embeddings + assistant chat |
-| `GEMINI_EMBEDDING_MODEL` | Gemini | Default `gemini-embedding-001` |
-| `GEMINI_CHAT_MODEL` | Gemini | Default `gemini-2.0-flash` |
-| `GEMINI_EMBEDDING_DIMENSIONS` | Gemini | Default `768` (must match DB vector size) |
-| `ABLY_API_KEY` | Ably | Server-side realtime publish + token minting |
-| `NEXT_PUBLIC_APP_URL` | App | Base URL |
-| `UBC_VERIFIED_EMAIL_DOMAINS` | App | Allowlist, default `student.ubc.ca` |
-| `DISCOVERY_PAGE_SIZE` | App | Default `20` |
-
-### Where to get credentials
-
-- Clerk: https://dashboard.clerk.com → API Keys (enable **Google only**)
-- Neon: https://console.neon.tech → Connection string
-- Gemini: https://aistudio.google.com/apikey
-- Ably: https://ably.com/dashboard → API Keys
-
----
-
-## 5. Authentication & signup flow
-
-1. User hits `/sign-in` → Clerk Google OAuth.
-2. After sign-in, redirect to `/onboarding`.
-3. `syncClerkBasics()` (`src/lib/auth/current-user.ts`) **synchronously** upserts:
-   - a `users` row (`clerk_user_id`, avatar, display name)
-   - a `user_profiles` row
-4. Clerk webhooks (`/api/webhooks/clerk`) also upsert, but **onboarding does not rely on webhooks alone**.
-5. Onboarding `POST /api/profile` saves username + both profile texts, writes version history, generates both embeddings, then unlocks `/discover`.
-
-Username rules: 3–20 chars, letters/numbers/underscore, case-insensitive unique, reserved names blocked, DB unique index on `username_normalized`.
-
----
-
-## 6. How embeddings are made
-
-Code: `src/lib/embeddings/index.ts` + `src/services/embedding.service.ts`
-
-### Process
-
-1. Take `self_text` or `seeking_text`.
-2. Call Gemini `embedContent` with:
-   - model: `GEMINI_EMBEDDING_MODEL` (`gemini-embedding-001`)
-   - dimensions: `768`
-   - task type: semantic similarity
-3. Store the float array into pgvector:
-   - `user_profiles.self_embedding`
-   - `user_profiles.seeking_embedding`
-4. Update `embedding_model` so incompatible vectors are never compared.
-
-### When embeddings regenerate
-
-| Event | Regenerates |
+| Variable | Purpose |
 |---|---|
-| Onboarding complete | Both |
-| “About Me” assistant update | `self_embedding` only |
-| “My Ideal People” assistant update | `seeking_embedding` only |
-| Undo last profile change | The affected side |
+| `DATABASE_URL` | Neon Postgres connection string |
+| `GEMINI_API_KEY` | Google AI Studio / Gemini API key |
+| `GEMINI_EMBEDDING_MODEL` | Optional; default `gemini-embedding-001` |
+| `GEMINI_EMBEDDING_DIMENSIONS` | Optional; default `768` |
+| `GEMINI_MODEL` | Unused for core matching; kept for future LLM features |
 
-Embeddings are **not** regenerated on unrelated UI actions.
+Clerk, Ably, and education-email vars are **no longer required**.
 
 ---
 
-## 7. How the three discovery lists are made
+## 6. How pairing works
 
-Code: `src/services/matching.service.ts`  
-API: `GET /api/discovery?kind=...&ubc=...&offset=...`  
-UI: `src/components/discovery/discovery-page.tsx`
+1. **Join** creates a `participants` row tied to a random `session_token` stored in an HttpOnly cookie.
+2. Quiz answers + free text are compiled into `working_style_text` (MCQ options contribute their `embeddingHint` phrases).
+3. Gemini embeds that text → `participants.embedding`.
+4. SQL picks the biome with the smallest cosine distance:
 
-Scores use pgvector cosine distance (`<=>`):
-
-```text
-cosine_similarity = 1 - cosine_distance
-display_score = clamp(round(similarity * 100), 0, 100)
+```sql
+ORDER BY centroid_embedding <=> participant_embedding
+LIMIT 1
 ```
 
-Central conversion: `src/lib/matching/scores.ts`.
+5. Everyone in the same group who lands on the same biome appears in that biome’s member list (by official name).
 
-### A. People You Might Like (`kind=you_might_like`)
-
-```text
-similarity(A.seeking_embedding, B.self_embedding)
-```
-
-“Does this person look like who I’m looking for?”
-
-### B. People Who Might Like You (`kind=might_like_you`)
-
-```text
-similarity(A.self_embedding, B.seeking_embedding)
-```
-
-“Do I look like who they are looking for?”
-
-### C. Mutual Connections (`kind=mutual`)
-
-```text
-scoreAB = similarity(A.seeking, B.self)
-scoreBA = similarity(B.seeking, A.self)
-mutual  = harmonic_mean(scoreAB, scoreBA)
-        = 2 * AB * BA / (AB + BA)   # zero-safe
-```
-
-Balances one-sided high scores. UI also shows both directional percentages.
-
-### Filters applied in SQL
-
-Every list excludes:
-
-- yourself
-- inactive/deleted users
-- users without completed onboarding
-- users missing required embeddings
-- users with a different `embedding_model`
-- blocked relationships
-
-### UBC filter dropdown (`ubc=`)
-
-| Value | Label | SQL meaning |
-|---|---|---|
-| `all` | Everyone | No UBC constraint |
-| `ubc_students` | UBC students | `is_ubc_student_claim OR is_ubc_verified` |
-| `ubc_verified` | UBC verified | `is_ubc_verified = true` |
-
-Filter applies to **all three lists**.
+Biomes are **not** full project teams yet — they are working-style clusters inside the class pool. Team formation inside a biome can come later.
 
 ---
 
-## 8. How the two AI chatboxes update profiles & lists
+## 7. Creating / editing questions
 
-UI: `src/components/ai/ai-profile-studio.tsx`  
-API: `/api/assistant/self` and `/api/assistant/seeking`  
-Service: `src/services/assistant.service.ts`
+On `/create-group`:
 
-### Two independent assistants
+- Start from **default UBC group-project questions** (meeting cadence, procrastination, work split, communication, role, deadlines, free write).
+- **Clear defaults**, delete individual questions, add MCQs or free-write prompts.
+- Each MCQ choice has a **label** (shown to students) and an **embedding hint** (blended into the vector text).
 
-| Assistant | Updates | Chat history |
-|---|---|---|
-| **About Me** | `self_text` + `self_embedding` only | `assistant_type = 'self'` |
-| **My Ideal People** | `seeking_text` + `seeking_embedding` only | `assistant_type = 'seeking'` |
-
-They never cross-edit each other’s profile.
-
-### Message flow
-
-1. User sends a message.
-2. Backend loads current profile text + recent conversation for that assistant.
-3. Gemini returns structured JSON (`assistant_message`, `should_update`, `updated_profile`, `changes_summary`).
-4. If `should_update`:
-   - save new text
-   - bump version
-   - insert `profile_versions` row
-   - regenerate **only that side’s** embedding
-5. Frontend invalidates discovery queries:
-   - About Me update → refresh **Might like you** + **Mutual**
-   - Ideal People update → refresh **You might like** + **Mutual**
-6. Unaffected list keeps its semantic ranking (no fake score reshuffle).
-
-### Undo
-
-`DELETE /api/assistant/self|seeking` restores the previous version text and regenerates the embedding.
-
-### Safety rules
-
-- Do not invent personal facts.
-- Preserve existing content unless the user asks to change it.
-- Clarifying questions are allowed without updating.
-- Version checks prevent concurrent overwrites.
+Questions are stored per group at create time. Different classes can use different quizzes while still sharing the same biome themes.
 
 ---
 
-## 9. Friend requests, messaging, notifications
+## 8. Session model (no accounts)
 
-### Friendships
-
-- States: `pending`, `accepted`, `declined`, `blocked`
-- Canonical pair ordering (`user_low_id < user_high_id`) prevents duplicates
-- Accept creates a `conversations` row
-- APIs under `/api/friendships`
-
-### Messaging
-
-- Only after **accepted** friendship
-- Persist in Neon first (`messages`)
-- Then publish Ably event (best-effort)
-- Token endpoint: `/api/ably/token` (never exposes Ably secret to browser)
-
-### Notifications
-
-- Always persisted in `notifications`
-- Types: friend request, accept, new message
-- Realtime fanout via Ably user channel when available
+- Cookie name: `mutual_participant`
+- Value: UUID `session_token` on `participants`
+- Re-joining the same group with the same cookie updates the official name and continues the quiz/biome flow
+- No passwords, OAuth, or email verification
 
 ---
 
-## 10. UBC student verification
+## 9. What’s intentionally removed
 
-Two independent concepts:
-
-1. **Claim:** `users.is_ubc_student_claim` (settings toggle)
-2. **Verified:** `users.is_ubc_verified` (server-confirmed)
-
-Verification flow:
-
-1. User enters education email.
-2. Server checks domain allowlist (`UBC_VERIFIED_EMAIL_DOMAINS`).
-3. Client uses Clerk secondary email + OTP (`createEmailAddress` → `prepareVerification` → `attemptVerification`).
-4. Server re-checks Clerk that the email is verified and domain is allowlisted.
-5. Only then sets `is_ubc_verified = true`.
-
-Education email is private (never shown on public profiles).
-
-Badges:
-
-- No claim → no badge
-- Claim, not verified → muted “UBC · unverified”
-- Verified → prominent “UBC verified”
+- Clerk Google login / signup
+- User profiles, discovery lists, mutual scores between people
+- Friends, notifications, Ably chat
+- UBC email verification flows
+- AI Profile Studio assistants
 
 ---
 
-## 11. Key API map
-
-| Endpoint | Purpose |
-|---|---|
-| `GET/POST/PATCH /api/profile` | Load / onboard / update account settings |
-| `GET /api/profile/username-availability` | Live username check |
-| `GET /api/discovery` | Three lists + UBC filter + pagination |
-| `GET/POST/DELETE /api/assistant/self` | About Me chat / undo |
-| `GET/POST/DELETE /api/assistant/seeking` | Ideal People chat / undo |
-| `GET/POST /api/friendships` | List / send requests |
-| `POST /api/friendships/[id]/accept\|decline` | Respond |
-| `GET /api/conversations` | Conversation list |
-| `GET/POST /api/conversations/[id]/messages` | Load / send messages |
-| `GET /api/notifications` | Notification feed |
-| `POST /api/notifications/read` | Mark read |
-| `POST /api/ubc/verification/start\|verify` | UBC verify flow |
-| `GET /api/ably/token` | Secure realtime token |
-| `POST /api/webhooks/clerk` | Idempotent user sync |
-| `GET /api/users/[username]` | Public profile (no private texts/emails/embeddings) |
-
----
-
-## 12. Local development
+## 10. Local setup
 
 ```bash
-cp .env.example .env.local
-# fill credentials
-
 npm install
-# In Neon SQL: CREATE EXTENSION IF NOT EXISTS vector;
-npm run db:push
-npm run seed          # optional: ~40 synthetic users with real embeddings
+cp .env.example .env.local   # fill DATABASE_URL + GEMINI_API_KEY
+npm run db:push              # apply schema to Neon
 npm run dev
 ```
 
-Seed users use `clerk_user_id` like `seed_*` and can be reset with:
-
-```sql
-DELETE FROM users WHERE clerk_user_id LIKE 'seed_%';
-```
+1. Open `/create-group`, create a pool, copy the code.
+2. Open `/`, enter code + official name.
+3. Finish `/quiz` → land in a biome and open **Members**.
 
 ---
 
-## 13. Privacy rules (what is never returned)
+## 11. Upcoming
 
-APIs must not expose to other users:
-
-- private emails / UBC education emails
-- raw private questionnaire text (except to the owner)
-- assistant chat histories of others
-- private messages of others
-- embedding arrays
-- API secrets
-
-Public cards show: username, display name, avatar, public summary, interests/skills, UBC badge, match scores, friendship state.
-
----
-
-## 14. Mental model (one diagram)
-
-```text
-Google sign-in (Clerk)
-        │
-        ▼
- users + user_profiles created
-        │
-        ▼
- Onboarding: self_text + seeking_text
-        │
-        ▼
- Gemini embeddings → self_embedding / seeking_embedding
-        │
-        ├──────────────┬────────────────┐
-        ▼              ▼                ▼
- You might like   Might like you    Mutual (harmonic mean)
-        │
-        ▼
- UBC filter (Everyone / Students / Verified)
-        │
-        ▼
- AI Studio chats refine one side → re-embed → refresh affected lists
-```
-
----
-
-## 15. File map (most important)
-
-```text
-src/lib/db/schema.ts              # tables + pgvector columns
-src/lib/embeddings/index.ts       # Gemini embedText
-src/lib/matching/scores.ts        # score conversion + harmonic mean
-src/services/matching.service.ts  # three discovery queries + UBC filter
-src/services/assistant.service.ts # two AI assistants
-src/services/embedding.service.ts # persist vectors
-src/services/profile.service.ts   # onboarding + undo versions
-src/components/ai/ai-profile-studio.tsx
-src/components/discovery/*        # lists, cards, UBC filter UI
-```
-
-If something looks “missing” in Neon, open **`user_profiles`**, not `users`, for the vector columns.
+- Real Minecraft-like 3D biome scenes per `theme_key`
+- Optional tools to refine team sizes inside a biome
+- Creator tools to tweak questions after a group already exists

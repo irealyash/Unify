@@ -1,124 +1,144 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function LandingPage() {
+  const router = useRouter();
+  const [code, setCode] = useState("");
+  const [officialName, setOfficialName] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function onJoin(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res = await fetch("/api/groups/join", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, officialName }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not join group");
+
+      if (data.participant?.biomeId && data.participant?.quizCompletedAt) {
+        router.push(`/biome/${data.participant.biomeId}`);
+      } else {
+        router.push("/quiz");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not join");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
-    <div className="relative min-h-screen overflow-hidden bg-black text-white">
+    <div className="relative min-h-screen overflow-hidden bg-[#07140f] text-[#e8f5e9]">
       <div
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 90% 55% at 50% -5%, rgba(255,255,255,0.12), transparent 55%)",
+            "radial-gradient(ellipse 80% 50% at 50% -10%, rgba(74,222,128,0.18), transparent 55%), radial-gradient(ellipse 60% 40% at 80% 80%, rgba(34,197,94,0.12), transparent 50%)",
         }}
       />
       <div
-        className="pointer-events-none absolute inset-0 opacity-30"
+        className="pointer-events-none absolute inset-0 opacity-[0.35]"
         style={{
           backgroundImage:
-            "linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px)",
-          backgroundSize: "72px 72px",
+            "linear-gradient(to right, rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.04) 1px, transparent 1px)",
+          backgroundSize: "48px 48px",
           maskImage:
-            "radial-gradient(ellipse 75% 50% at 50% 0%, black 10%, transparent 70%)",
+            "radial-gradient(ellipse 80% 60% at 50% 20%, black 20%, transparent 75%)",
         }}
       />
-      <motion.div
-        aria-hidden
-        className="pointer-events-none absolute left-1/2 top-[12%] h-[380px] w-[680px] -translate-x-1/2 rounded-full bg-white/[0.06] blur-[110px]"
-        animate={{ opacity: [0.4, 0.7, 0.4], scale: [1, 1.04, 1] }}
-        transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
-      />
 
-      <header className="relative z-10 mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6 md:px-8">
+      <header className="relative z-10 mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-6">
         <Link href="/" className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-sm font-bold text-black">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-400 font-display text-sm font-bold text-[#07140f]">
             M
           </span>
           <span className="text-[15px] font-semibold tracking-tight">Mutual</span>
         </Link>
         <Link
-          href="/sign-in"
-          className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-white/90 backdrop-blur transition hover:border-white/30 hover:bg-white/10"
+          href="/create-group"
+          className="rounded-lg border border-emerald-400/25 bg-emerald-400/10 px-4 py-2 text-sm text-emerald-100 transition hover:bg-emerald-400/20"
         >
-          Sign in
+          Create group
         </Link>
       </header>
 
-      <main className="relative z-10 mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-5xl flex-col items-center justify-center px-6 pb-28 text-center md:px-8">
+      <main className="relative z-10 mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-lg flex-col justify-center px-6 pb-16">
         <motion.div
-          initial={{ opacity: 0, y: 18 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
-          className="flex flex-col items-center"
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
-          <motion.span
+          <motion.div
             initial={{ opacity: 0, scale: 0.94 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6 }}
-            className="mb-8 flex h-14 w-14 items-center justify-center rounded-2xl bg-white font-display text-2xl font-bold text-black shadow-[0_0_48px_rgba(255,255,255,0.2)]"
+            className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-200"
           >
-            M
-          </motion.span>
+            <Sparkles className="h-3.5 w-3.5" />
+            UBC group project matching
+          </motion.div>
 
-          <h1 className="font-display text-[clamp(3.5rem,11vw,6rem)] font-semibold leading-[0.92] tracking-[-0.045em]">
+          <h1 className="font-display text-[clamp(2.75rem,10vw,4.25rem)] font-semibold leading-[0.95] tracking-[-0.04em]">
             Mutual
           </h1>
-
-          <p className="mt-6 max-w-md text-balance text-base text-white/50 md:text-lg">
-            Discover people who align with who you are—and who you want to become.
+          <p className="mt-4 max-w-md text-balance text-base text-emerald-100/60">
+            Enter the shared class code, answer a short working-style quiz, and get
+            paired into a biome with classmates who work like you.
           </p>
 
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, delay: 0.18 }}
-            className="mt-10"
-          >
-            <Link
-              href="/sign-in"
-              className="group inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-medium text-black transition hover:bg-neutral-200"
+          <form onSubmit={onJoin} className="mt-10 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="code" className="text-emerald-100/80">
+                Group code
+              </Label>
+              <Input
+                id="code"
+                value={code}
+                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                placeholder="e.g. CPSC310"
+                className="border-emerald-400/20 bg-black/30 font-mono tracking-[0.2em] text-emerald-50 placeholder:text-emerald-100/30"
+                required
+                minLength={4}
+                maxLength={12}
+                autoComplete="off"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-emerald-100/80">
+                Official name
+              </Label>
+              <Input
+                id="name"
+                value={officialName}
+                onChange={(e) => setOfficialName(e.target.value)}
+                placeholder="Name as on your class roster"
+                className="border-emerald-400/20 bg-black/30 text-emerald-50 placeholder:text-emerald-100/30"
+                required
+                minLength={2}
+                maxLength={120}
+              />
+            </div>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="h-11 w-full bg-emerald-400 text-[#07140f] hover:bg-emerald-300"
             >
-              Continue with Google
-              <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
-            </Link>
-          </motion.div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 36 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-[36vh] overflow-hidden"
-          aria-hidden
-        >
-          <div
-            className="mx-auto h-full max-w-4xl rounded-t-[1.75rem] border border-white/10 bg-gradient-to-b from-white/[0.07] to-transparent"
-            style={{
-              maskImage: "linear-gradient(to bottom, black 25%, transparent 95%)",
-            }}
-          >
-            <div className="flex h-11 items-center gap-2 border-b border-white/10 px-5">
-              <div className="h-1.5 w-1.5 rounded-full bg-white/30" />
-              <div className="h-1.5 w-1.5 rounded-full bg-white/30" />
-              <div className="h-1.5 w-1.5 rounded-full bg-white/30" />
-              <div className="ml-4 h-1.5 w-24 rounded-full bg-white/15" />
-            </div>
-            <div className="grid grid-cols-3 gap-3 p-5 opacity-80">
-              {[91, 84, 77].map((score, i) => (
-                <div
-                  key={i}
-                  className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-left"
-                >
-                  <div className="mb-3 h-8 w-8 rounded-full bg-white/20" />
-                  <div className="mb-2 h-2 w-14 rounded-full bg-white/25" />
-                  <div className="h-2 w-20 rounded-full bg-white/10" />
-                  <div className="mt-4 text-xs text-white/55">{score}% match</div>
-                </div>
-              ))}
-            </div>
-          </div>
+              {loading ? "Joining…" : "Join pool"}
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </form>
         </motion.div>
       </main>
     </div>
