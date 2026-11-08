@@ -8,6 +8,9 @@ import {
   biomeArea,
   clampToArea,
   normalizeContacts,
+  isHatId,
+  isMouthId,
+  isPlayerColor,
   normalizeRoomCode,
   playerArea,
   spawnOffset,
@@ -301,6 +304,23 @@ export function registerHandlers(io: IO, store: RoomStore) {
         broadcastPlayer(room, player);
 
         return { playerId: player.id, playerToken: player.token, room: toSnapshot(room) };
+      }),
+    );
+
+    socket.on("player:customize", (req, ack) =>
+      guard(ack, () => {
+        const { room, player } = ownPlayer();
+        // Only known colours and hats, so one client can't inject arbitrary
+        // values into everyone else's scene.
+        if (!isPlayerColor(req?.color)) throw new Error("Unknown colour");
+        if (!isHatId(req?.hat)) throw new Error("Unknown hat");
+        if (!isMouthId(req?.mouth)) throw new Error("Unknown mouth");
+        player.color = req.color;
+        player.hat = req.hat;
+        player.mouth = req.mouth;
+        room.lastActiveAt = Date.now();
+        broadcastPlayer(room, player);
+        return null;
       }),
     );
 

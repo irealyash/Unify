@@ -1,6 +1,6 @@
 import type { ContactLinks } from "./contacts";
 import type { QuizAnswers } from "./questions";
-import type { Pose, PlayerState, RoomSnapshot, Stage } from "./room";
+import type { Customisation, Pose, PlayerState, RoomSnapshot, Stage } from "./room";
 
 export type AckResult<T> = { ok: true; data: T } | { ok: false; error: string };
 export type Ack<T> = (result: AckResult<T>) => void;
@@ -40,6 +40,8 @@ export interface ClientToServerEvents {
   "host:attach": (req: HostSession, ack: Ack<RoomSnapshot>) => void;
   "player:join": (req: JoinRequest, ack: Ack<JoinResult>) => void;
   "player:move": (pose: Pose) => void;
+  /** Change your own character's colour and hat; broadcast to the whole room. */
+  "player:customize": (req: Customisation, ack: Ack<null>) => void;
   /** Leave the room on purpose (vs. a dropped connection). */
   "player:leave": (ack: Ack<null>) => void;
   /** Host moves the room from the lobby into the quiz. */

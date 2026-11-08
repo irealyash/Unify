@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { BIOME_BY_ID, normalizeRoomCode, type PlayerState, type Stage } from "@unify/shared";
 import { Button } from "@/components/ui/button";
 import { BiomeReveal } from "@/game/BiomeReveal";
+import { Customiser } from "@/game/Customiser";
 import { ProfileCard } from "@/game/ProfileCard";
 import { QuizPanel } from "@/game/QuizPanel";
 import { SortingOverlay } from "@/game/SortingOverlay";
@@ -142,6 +143,7 @@ export function PlayPage() {
             <h3 className="hud-muted font-handwritten text-sm tracking-wider">{status.title}</h3>
             <div className="text-base">{status.detail}</div>
           </div>
+          {self && !quizOpen && stage !== "sorting" ? <Customiser self={self} /> : null}
           <button
             type="button"
             onClick={leave}

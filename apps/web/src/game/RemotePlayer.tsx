@@ -56,6 +56,8 @@ export function RemotePlayer({
       <Avatar
         name={player.name}
         color={player.color}
+        hat={player.hat}
+        mouth={player.mouth}
         labelScale={labelScale}
         highlighted={clickable && (hovered || viewing)}
       />

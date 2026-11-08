@@ -2,13 +2,17 @@ import { Outlines } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
 import { Group, Mesh, Vector3 } from "three";
-import { MOVE_SPEED } from "@unify/shared";
+import { MOVE_SPEED, type HatId, type MouthId } from "@unify/shared";
+import { Hat, hatHeight } from "./Hat";
 import { damp } from "./math";
+import { Mouth } from "./Mouth";
 import { NameTag } from "./NameTag";
 
 type AvatarProps = {
   name: string;
   color: string;
+  hat?: HatId;
+  mouth?: MouthId;
   isSelf?: boolean;
   /** Being hovered or viewed: brightens the ring on the ground. */
   highlighted?: boolean;
@@ -46,13 +50,9 @@ const EYE_RX = BODY_HW * 0.058;
 const EYE_STRETCH = (BODY_HH * 0.136) / (BODY_HW * 0.058);
 const EYE_X = BODY_HW * 0.345;
 
-const MOUTH_DROP = BODY_HH * 0.338;
-const MOUTH_HW = BODY_HW * 0.079;
-const MOUTH_H = BODY_HH * 0.058 * 2;
+const MOUTH_DROP = BODY_HH * 0.27;
+const MOUTH_HW = BODY_HW * 0.134;
 const MOUTH_R = BODY_HW * 0.022;
-/** Each stroke of the V, and its tilt off vertical. */
-const MOUTH_ARM = Math.hypot(MOUTH_HW, MOUTH_H);
-const MOUTH_TILT = Math.atan2(MOUTH_HW, MOUTH_H);
 
 /** Feet are drawn bigger than the reference, and keyed to the drawing's width
  *  so they stay the same size regardless of how far the body is narrowed. */
@@ -74,7 +74,13 @@ const surfaceZ = (x: number, dy: number) =>
   BODY_HD * Math.sqrt(Math.max(0, 1 - (x / BODY_HW) ** 2 - (dy / BODY_HH) ** 2));
 
 const EYE_Z = surfaceZ(EYE_X, 0) + 0.01;
-const MOUTH_Z = surfaceZ(0, -MOUTH_DROP) + 0.01;
+/**
+ * Depth for a point `dy` above the mouth's anchor. The face curves away
+ * sharply over the mouth's height, so a single flat plane either buries the
+ * tall shapes (frown, v) or leaves the low ones (smile) floating — each shape
+ * asks for its own z instead.
+ */
+const mouthDepth = (dy: number) => surfaceZ(0, -MOUTH_DROP + dy) + 0.012;
 
 /** Stride cadence: radians of gait phase per world unit travelled. Drives the
  *  bob, squash and waddle as well as the steps, so they stay in time. */
@@ -92,7 +98,7 @@ const WADDLE = 0.016;
 /** Forward lean at full speed, in radians. */
 const LEAN = 0.07;
 
-/** Clearance between the top of the head and the name tag. */
+/** Clearance between the name tag and whatever is highest — head or hat. */
 const NAME_GAP = 0.46;
 
 const tmpWorld = new Vector3();
@@ -104,7 +110,15 @@ const tmpWorld = new Vector3();
  * than a prop, so local players (keyboard-driven) and remote players
  * (interpolated toward a network pose) animate through the same path.
  */
-export function Avatar({ name, color, isSelf, highlighted, labelScale = 1 }: AvatarProps) {
+export function Avatar({
+  name,
+  color,
+  hat = "none",
+  mouth = "v",
+  isSelf,
+  highlighted,
+  labelScale = 1,
+}: AvatarProps) {
   const root = useRef<Group>(null);
   const rig = useRef<Group>(null);
   const squish = useRef<Group>(null);
@@ -185,19 +199,11 @@ export function Avatar({ name, color, isSelf, highlighted, labelScale = 1 }: Ava
             </mesh>
           ))}
 
-          {/* Mouth: two strokes meeting in a soft V. */}
-          <group position={[0, BODY_HH - MOUTH_DROP, MOUTH_Z]}>
-            {[-1, 1].map((side) => (
-              <mesh
-                key={side}
-                position={[(side * MOUTH_HW) / 2, MOUTH_H / 2, 0]}
-                rotation={[0, 0, -side * MOUTH_TILT]}
-              >
-                <capsuleGeometry args={[MOUTH_R, Math.max(0.01, MOUTH_ARM - MOUTH_R * 2), 3, 8]} />
-                <meshStandardMaterial color={INK} roughness={0.5} />
-              </mesh>
-            ))}
+          <group position={[0, BODY_HH - MOUTH_DROP, 0]}>
+            <Mouth mouth={mouth} w={MOUTH_HW} r={MOUTH_R} depth={mouthDepth} />
           </group>
+
+          <Hat hat={hat} hw={BODY_HW} hh={BODY_HH} hd={BODY_HD} cy={BODY_HH} />
         </group>
 
         {[
@@ -228,7 +234,7 @@ export function Avatar({ name, color, isSelf, highlighted, labelScale = 1 }: Ava
         color={color}
         highlight={isSelf}
         scale={labelScale}
-        y={BODY_Y + BODY_HH + NAME_GAP + (labelScale - 1) * 0.3}
+        y={BODY_Y + BODY_HH + hatHeight(hat, BODY_HW, BODY_HH) + NAME_GAP + (labelScale - 1) * 0.3}
       />
     </group>
   );
