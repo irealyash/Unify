@@ -78,7 +78,7 @@ export function QuizPanel({ code, retry }: { code: string; retry?: boolean }) {
 
   return (
     <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 p-4 backdrop-blur-[2px]">
-      <div className="w-full max-w-xl rounded-2xl border border-[#e3e5ea] bg-white p-6 text-[#0f1222] shadow-[0_24px_60px_-24px_rgba(15,18,34,0.35)] sm:p-8">
+      <div className="w-full max-w-xl rounded-2xl border border-[#e3e5ea] bg-card p-6 text-[#0f1222] shadow-[0_24px_60px_-24px_rgba(15,18,34,0.35)] sm:p-8">
         <div className="mb-6 flex items-center justify-between gap-4 text-sm text-[#6b7080]">
           <span>
             Question {step + 1} of {QUESTIONS.length}
@@ -87,12 +87,12 @@ export function QuizPanel({ code, retry }: { code: string; retry?: boolean }) {
         </div>
         <div className="mb-7 h-1.5 overflow-hidden rounded-full bg-[#eef0f4]">
           <div
-            className="h-full rounded-full bg-[#5b5ce2] transition-all duration-300"
+            className="h-full rounded-full bg-accent transition-all duration-300"
             style={{ width: `${((step + 1) / QUESTIONS.length) * 100}%` }}
           />
         </div>
 
-        <h2 className="text-balance text-xl font-semibold leading-snug sm:text-2xl">
+        <h2 className="text-balance font-serif text-xl font-semibold leading-snug sm:text-2xl">
           {question.prompt}
         </h2>
 
@@ -107,14 +107,14 @@ export function QuizPanel({ code, retry }: { code: string; retry?: boolean }) {
                     type="button"
                     onClick={() => choose(option.id)}
                     className={cn(
-                      "flex items-center justify-between gap-3 rounded-xl border px-4 py-3.5 text-left text-[15px] transition",
+                      "flex items-center justify-between gap-3 border px-4 py-3.5 text-left font-handwritten text-[15px] transition",
                       selected
-                        ? "border-[#5b5ce2] bg-[#5b5ce2]/8 font-medium"
+                        ? "border-secondary bg-secondary/8 font-medium"
                         : "border-[#e3e5ea] hover:border-[#c9ccd6] hover:bg-[#f7f8fa]",
                     )}
                   >
                     {option.label}
-                    {selected ? <Check className="h-4 w-4 shrink-0 text-[#5b5ce2]" /> : null}
+                    {selected ? <Check className="h-4 w-4 shrink-0 text-secondary" /> : null}
                   </button>
                 );
               })}
@@ -128,7 +128,7 @@ export function QuizPanel({ code, retry }: { code: string; retry?: boolean }) {
                 maxLength={question.maxLength}
                 rows={4}
                 autoFocus
-                className="w-full resize-none rounded-xl border border-[#e3e5ea] px-4 py-3 text-[15px] outline-none transition placeholder:text-[#a0a4b3] focus:border-[#5b5ce2]"
+                className="w-full resize-none rounded-xl border border-[#e3e5ea] px-4 py-3 font-handwritten text-[15px] outline-none transition placeholder:text-[#a0a4b3] focus:border-secondary"
               />
               <div className="mt-1.5 flex justify-between text-xs text-[#8a8fa0]">
                 <span>{question.required ? "Required" : "Optional"}</span>
@@ -155,7 +155,7 @@ export function QuizPanel({ code, retry }: { code: string; retry?: boolean }) {
               type="button"
               onClick={submit}
               disabled={submitting}
-              className="flex items-center gap-2 rounded-xl bg-[#5b5ce2] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#4c4dd0] disabled:opacity-60"
+              className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
             >
               {submitting ? "Submitting…" : "Submit answers"}
               <Check className="h-4 w-4" />
@@ -165,7 +165,7 @@ export function QuizPanel({ code, retry }: { code: string; retry?: boolean }) {
               type="button"
               onClick={() => goTo(step + 1)}
               disabled={!canContinue}
-              className="flex items-center gap-2 rounded-xl bg-[#0f1222] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#262a40] disabled:opacity-40"
+              className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-40"
             >
               {question.kind === "text" && !value.trim() ? "Skip" : "Next"}
               <ArrowRight className="h-4 w-4" />

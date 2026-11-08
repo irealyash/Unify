@@ -49,6 +49,7 @@
   --radius-lg: calc(var(--radius) + 4px);
   --radius-xl: calc(var(--radius) + 8px);
   --font-sans: var(--font-body), system-ui, sans-serif;
+  --font-serif: var(--font-body), system-ui, serif;
   --font-display: var(--font-display), system-ui, sans-serif;
   --font-handwritten: var(--font-handwritten), system-ui, sans-serif;
 }
@@ -67,7 +68,7 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-body), system-ui, sans-serif;
-    font-size: 1.125rem;
+    font-size: 1.6875rem;
   }
 
   h1,
@@ -88,17 +89,17 @@
   }
 }
 
-/* Light cards that float over the white 3D room. */
+/* Primary-colored cards that float over the white 3D room. */
 @utility hud {
-  background: rgb(255 255 255 / 0.88);
-  color: #0f1222;
-  border: 1px solid #e3e5ea;
+  background: rgb(60 75 129 / 0.92);
+  color: #f5f1ed;
+  border: 1px solid rgb(245 241 237 / 0.18);
   box-shadow: 0 6px 20px -10px rgb(15 18 34 / 0.25);
   backdrop-filter: blur(8px);
 }
 
 @utility hud-muted {
-  color: #6b7080;
+  color: rgb(245 241 237 / 0.7);
 }
 
 /* ── Sorting + reveal animations ─────────────────────────────── */
@@ -180,4 +181,33 @@
   .unify-pop {
     animation: none;
   }
+}
+
+/* ── Toast skinning (overrides sonner's injected rich-colors styles) ── */
+[data-sonner-toaster] {
+  font-family: var(--font-body), system-ui, serif !important;
+}
+
+[data-rich-colors='true'][data-sonner-toast][data-type='success'] {
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+}
+
+[data-rich-colors='true'][data-sonner-toast][data-type='success'] [data-close-button] {
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+}
+
+[data-rich-colors='true'][data-sonner-toast][data-type='error'] {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: var(--accent-foreground) !important;
+}
+
+[data-rich-colors='true'][data-sonner-toast][data-type='error'] [data-close-button] {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: var(--accent-foreground) !important;
 }

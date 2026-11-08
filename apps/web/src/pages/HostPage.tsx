@@ -1,8 +1,9 @@
-import { Copy, Play, Plus, Shuffle } from "lucide-react";
+import { Play, Plus, Shuffle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import { BIOMES, type HostSession, type PlayerState, type SortMethod } from "@unify/shared";
+import { BookmarkTag } from "@/components/BookmarkTag";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SortingOverlay } from "@/game/SortingOverlay";
@@ -73,10 +74,6 @@ export function HostPage() {
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="text-2xl">Host a room</CardTitle>
-            <CardDescription>
-              Create a room, put the code on the projector, and your class joins from their
-              laptops.
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <Button size="lg" className="w-full" onClick={createRoom} disabled={creating}>
@@ -113,21 +110,31 @@ export function HostPage() {
       <div className="relative min-h-[50vh] flex-1 bg-[#f3f4f7]">
         {code ? <WorldScene spectator /> : null}
         {stage === "lobby" || stage === "quiz" ? (
-          <div className="hud pointer-events-none absolute left-1/2 top-6 -translate-x-1/2 rounded-2xl px-8 py-4 text-center">
+          <div className="hud pointer-events-none absolute left-1/2 top-6 -translate-x-1/2 rounded-md px-8 py-4 text-center">
             <div className="hud-muted text-sm">
-              Join at <span className="font-medium text-[#0f1222]">{window.location.host}</span>{" "}
+              Join at <span className="font-medium text-[#f5f1ed]">{window.location.host}</span>{" "}
               with code
             </div>
-            <div className="font-mono text-5xl font-semibold tracking-[0.25em]">{session.code}</div>
+            <button
+              type="button"
+              onClick={() => {
+                void navigator.clipboard?.writeText(joinUrl);
+                toast.success("Join link copied");
+              }}
+              aria-label="Copy join link"
+              className="pointer-events-auto font-handwritten text-5xl font-semibold tracking-[0.25em] transition hover:opacity-80"
+            >
+              {session.code}
+            </button>
           </div>
         ) : null}
         {stage === "sorting" ? <SortingOverlay players={roster} /> : null}
       </div>
 
-      <aside className="flex w-full flex-col gap-4 border-t border-border bg-card p-5 lg:w-80 lg:border-l lg:border-t-0">
+      <aside className="relative flex w-full flex-col gap-4 border-t border-border bg-card p-5 text-card-foreground lg:w-80 lg:border-l lg:border-t-0">
+        <BookmarkTag className="pointer-events-none absolute -top-1 right-6 z-20 h-9 w-7" />
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">{heading}</h2>
-          <span className="text-sm text-muted-foreground">{counter}</span>
+          <h2 className="font-handwritten text-lg font-semibold">{heading}</h2>
         </div>
 
         {stage === "quiz" ? (
@@ -137,20 +144,6 @@ export function HostPage() {
               style={{ width: `${roster.length ? (ready / roster.length) * 100 : 0}%` }}
             />
           </div>
-        ) : null}
-
-        {stage === "lobby" || stage === "quiz" ? (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              void navigator.clipboard?.writeText(joinUrl);
-              toast.success("Join link copied");
-            }}
-          >
-            <Copy />
-            Copy join link
-          </Button>
         ) : null}
 
         <div className="min-h-0 flex-1 overflow-y-auto">
@@ -196,6 +189,7 @@ export function HostPage() {
           >
             New room
           </Button>
+          <p className="text-center text-sm text-muted-foreground">{counter}</p>
         </div>
       </aside>
     </div>

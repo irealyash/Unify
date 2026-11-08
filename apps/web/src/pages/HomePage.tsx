@@ -104,7 +104,7 @@ export function HomePage() {
                 onFocus={() => setFocusedField("code")}
                 onBlur={() => setFocusedField((f) => (f === "code" ? null : f))}
                 placeholder="ABC123"
-                className="h-12 pr-10 text-lg tracking-[0.3em] uppercase"
+                className="h-12 pr-10 text-lg tracking-[0.3em]"
                 required
                 maxLength={ROOM_CODE_LENGTH}
                 autoComplete="off"
