@@ -1,10 +1,11 @@
 import { LogOut } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { BIOME_BY_ID, normalizeRoomCode, type PlayerState, type Stage } from "@unify/shared";
 import { Button } from "@/components/ui/button";
 import { BiomeReveal } from "@/game/BiomeReveal";
+import { ProfileCard } from "@/game/ProfileCard";
 import { QuizPanel } from "@/game/QuizPanel";
 import { SortingOverlay } from "@/game/SortingOverlay";
 import { useRoom, useRoomEvents } from "@/game/store";
@@ -28,6 +29,8 @@ export function PlayPage() {
   const selfId = useRoom((s) => s.selfId);
   const players = useRoom((s) => s.players);
   const stage = useRoom((s) => s.stage);
+  const viewingId = useRoom((s) => s.viewingId);
+  const setViewing = useRoom((s) => s.setViewing);
   const [replaced, setReplaced] = useState(false);
   const [revealed, setRevealed] = useState(() => readRevealed(code));
 
@@ -77,6 +80,9 @@ export function PlayPage() {
   const quizOpen = stage === "quiz" && (self?.quiz === "answering" || self?.quiz === "error");
   const showReveal = stage === "biomes" && Boolean(self?.placement) && !revealed;
   const status = statusLine(stage, self, everyone, teammates);
+  const viewing = teammates.find((p) => p.id === viewingId);
+
+  const closeProfile = useCallback(() => setViewing(null), [setViewing]);
 
   function closeReveal() {
     setRevealed(true);
@@ -142,10 +148,15 @@ export function PlayPage() {
         <BiomeReveal self={self} teammates={teammates} onClose={closeReveal} />
       ) : null}
 
-      {!quizOpen && stage !== "sorting" && !showReveal ? (
+      {viewing && !showReveal ? (
+        <ProfileCard key={viewing.id} player={viewing} onClose={closeProfile} />
+      ) : null}
+
+      {!quizOpen && stage !== "sorting" && !showReveal && !viewing ? (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-5">
           <div className="hud hud-muted rounded-full px-4 py-2 text-sm">
             <kbd className="font-mono text-[#0f1222]">WASD</kbd> or arrow keys to move
+            {stage === "biomes" && teammates.length > 0 ? " · click a teammate to see their profile" : null}
           </div>
         </div>
       ) : null}

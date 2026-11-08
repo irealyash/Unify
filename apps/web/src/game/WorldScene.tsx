@@ -165,6 +165,8 @@ export function WorldScene({ selfId, spectator, frozen }: WorldSceneProps) {
       dpr={[1, 2]}
       camera={{ position: spectator ? [0, 26, 22] : [0, 9, 11], fov: spectator ? 45 : 50 }}
       onCreated={({ camera }) => camera.lookAt(0, 0, 0)}
+      // Clicking anywhere that isn't a teammate closes their profile card.
+      onPointerMissed={() => useRoom.getState().setViewing(null)}
     >
       <color attach="background" args={[env.background]} />
       <fog attach="fog" args={spectator ? [BG, 120, 260] : env.fog} />
@@ -278,6 +280,7 @@ function renderPlayer(
       key={`${p.id}:${p.placement?.biome ?? "lobby"}`}
       player={p}
       labelScale={ctx.spectator ? 2.4 : 1}
+      clickable={ctx.stage === "biomes" && !ctx.spectator}
       ground={ctx.stage === "biomes" && p.placement ? groundFor(p.placement.biome) : undefined}
     />
   );

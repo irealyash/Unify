@@ -3,6 +3,8 @@ import {
   LOBBY_HALF_SIZE,
   PLAYER_COLORS,
   generateRoomCode,
+  type ContactLinks,
+  type MatchSummary,
   type PlayerState,
   type QuizAnswers,
   type RoomSnapshot,
@@ -15,6 +17,8 @@ export type Player = PlayerState & {
   /** Socket currently driving this player, or null while disconnected. */
   socketId: string | null;
   answers?: QuizAnswers;
+  /** Shared only with their group, on request. Kept in memory, never written to the database. */
+  contacts?: ContactLinks;
   profile?: Profile;
   /** Unit-length self vector built from the profile. */
   embedding?: number[];
@@ -29,6 +33,8 @@ export type Room = {
   players: Map<string, Player>;
   /** Players whose pose changed since the last network tick. */
   dirty: Set<string>;
+  /** "viewerId:targetId" → why the target suits the viewer (including ones still being written). */
+  matchSummaries: Map<string, Promise<MatchSummary>>;
   createdAt: number;
   lastActiveAt: number;
 };
@@ -48,6 +54,7 @@ export class RoomStore {
       stage: "lobby",
       players: new Map(),
       dirty: new Set(),
+      matchSummaries: new Map(),
       createdAt: now,
       lastActiveAt: now,
     };

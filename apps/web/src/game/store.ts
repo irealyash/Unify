@@ -9,6 +9,9 @@ type RoomState = {
   selfId: string | null;
   /** Player metadata. Live positions are kept in `poses` so moves don't re-render React. */
   players: Record<string, PlayerState>;
+  /** The teammate whose profile card is open. */
+  viewingId: string | null;
+  setViewing: (id: string | null) => void;
   applySnapshot: (snapshot: RoomSnapshot, selfId?: string | null) => void;
   upsertPlayer: (player: PlayerState) => void;
   markLeft: (id: string) => void;
@@ -24,6 +27,8 @@ export const useRoom = create<RoomState>((set, get) => ({
   stage: "lobby",
   selfId: null,
   players: {},
+  viewingId: null,
+  setViewing: (viewingId) => set({ viewingId }),
   applySnapshot: (snapshot, selfId = null) => {
     poses.clear();
     const players: Record<string, PlayerState> = {};
@@ -57,7 +62,7 @@ export const useRoom = create<RoomState>((set, get) => ({
   },
   reset: () => {
     poses.clear();
-    set({ code: null, stage: "lobby", selfId: null, players: {} });
+    set({ code: null, stage: "lobby", selfId: null, players: {}, viewingId: null });
   },
 }));
 

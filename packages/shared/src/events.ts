@@ -1,3 +1,4 @@
+import type { ContactLinks } from "./contacts";
 import type { QuizAnswers } from "./questions";
 import type { Pose, PlayerState, RoomSnapshot, Stage } from "./room";
 
@@ -19,6 +20,20 @@ export type JoinResult = {
   room: RoomSnapshot;
 };
 
+/** What a student hands in at the end of the questionnaire. */
+export type QuizSubmission = { answers: QuizAnswers; contacts: ContactLinks };
+
+/** What a student sees when they click someone in their group. */
+export type TeammateProfile = {
+  id: string;
+  /** Null if they never handed in the questionnaire. */
+  answers: QuizAnswers | null;
+  contacts: ContactLinks;
+};
+
+/** Why two students suit each other. "template" is a plain comparison, not written by AI. */
+export type MatchSummary = { text: string; source: "gemini" | "template" };
+
 /** Events the browser sends to the server. */
 export interface ClientToServerEvents {
   "host:create": (ack: Ack<HostSession>) => void;
@@ -30,9 +45,13 @@ export interface ClientToServerEvents {
   /** Host moves the room from the lobby into the quiz. */
   "host:startQuiz": (ack: Ack<null>) => void;
   /** Player submits their questionnaire (once; the server builds their profile). */
-  "quiz:submit": (answers: QuizAnswers, ack: Ack<null>) => void;
+  "quiz:submit": (submission: QuizSubmission, ack: Ack<null>) => void;
   /** Host closes the quiz and sorts everyone into biomes. */
   "host:sort": (ack: Ack<null>) => void;
+  /** Someone in your group's answers and contact links. */
+  "profile:get": (req: { id: string }, ack: Ack<TeammateProfile>) => void;
+  /** Why they suit you. Can take a few seconds the first time. */
+  "profile:match": (req: { id: string }, ack: Ack<MatchSummary>) => void;
 }
 
 /** Events the server pushes to everyone in a room. */

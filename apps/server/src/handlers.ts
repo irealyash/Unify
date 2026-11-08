@@ -7,6 +7,7 @@ import {
   WALKABLE_STAGES,
   biomeArea,
   clampToArea,
+  normalizeContacts,
   normalizeRoomCode,
   playerArea,
   spawnOffset,
@@ -19,6 +20,7 @@ import { getBiomeVectors, type BiomeVectors } from "./ai/biomes";
 import { errorMessage, geminiLimit, withRetry } from "./ai/gemini";
 import { chooseBiome } from "./ai/sorter";
 import { persist } from "./db";
+import { matchSummary } from "./match";
 import { buildProfile } from "./quiz";
 import { sortStudents, type SortCandidate, type SortResult } from "./sort";
 import { RoomStore, toPublicPlayer, toSnapshot, type Player, type Room } from "./rooms";
@@ -51,7 +53,27 @@ const poseSchema = z.object({
   rotY: z.number().finite(),
 });
 
-const answersSchema = z.record(z.string().max(32), z.string().max(1000));
+const submissionSchema = z.object({
+  answers: z.record(z.string().max(32), z.string().max(1000)),
+  contacts: z
+    .object({
+      email: z.string().max(300).optional(),
+      discord: z.string().max(300).optional(),
+      instagram: z.string().max(300).optional(),
+      linkedin: z.string().max(300).optional(),
+    })
+    .default({}),
+});
+
+const profileRequestSchema = z.object({ id: z.string().min(1).max(64) });
+
+function failureMessage(err: unknown) {
+  return err instanceof z.ZodError
+    ? (err.issues[0]?.message ?? "Invalid request")
+    : err instanceof Error
+      ? err.message
+      : "Something went wrong";
+}
 
 /** Wraps a handler so thrown errors become `{ ok: false }` acks instead of crashing. */
 function guard<T>(ack: unknown, run: () => T) {
@@ -59,14 +81,20 @@ function guard<T>(ack: unknown, run: () => T) {
   try {
     reply({ ok: true, data: run() });
   } catch (err) {
-    const error =
-      err instanceof z.ZodError
-        ? (err.issues[0]?.message ?? "Invalid request")
-        : err instanceof Error
-          ? err.message
-          : "Something went wrong";
-    reply({ ok: false, error });
+    reply({ ok: false, error: failureMessage(err) });
   }
+}
+
+/** `guard` for handlers that have to wait on something before replying. */
+function guardAsync<T>(ack: unknown, run: () => Promise<T>) {
+  const reply = typeof ack === "function" ? (ack as Ack<T>) : () => {};
+  void (async () => {
+    try {
+      reply({ ok: true, data: await run() });
+    } catch (err) {
+      reply({ ok: false, error: failureMessage(err) });
+    }
+  })();
 }
 
 export function registerHandlers(io: IO, store: RoomStore) {
@@ -91,6 +119,23 @@ export function registerHandlers(io: IO, store: RoomStore) {
         throw new Error("You're not in a room. Rejoin with the code.");
       }
       return { room, player };
+    };
+
+    /** Someone in this player's biome, or throws: profiles are only for your own group. */
+    const groupMember = (raw: unknown) => {
+      const { id } = profileRequestSchema.parse(raw);
+      const { room, player } = ownPlayer();
+      const target = room.players.get(id);
+      if (
+        room.stage !== "biomes" ||
+        !player.placement ||
+        !target ||
+        target.id === player.id ||
+        target.placement?.biome !== player.placement.biome
+      ) {
+        throw new Error("You can only view people in your group");
+      }
+      return { room, player, target };
     };
 
     socket.on("host:create", (ack) =>
@@ -143,14 +188,31 @@ export function registerHandlers(io: IO, store: RoomStore) {
         if (player.quiz === "processing" || player.quiz === "ready") {
           throw new Error("You've already submitted your answers");
         }
-        const answers = answersSchema.parse(raw);
+        const { answers, contacts } = submissionSchema.parse(raw);
         const problem = validateAnswers(answers);
         if (problem) throw new Error(problem);
+        const normalized = normalizeContacts(contacts);
+        if ("error" in normalized) throw new Error(normalized.error);
 
         player.answers = answers;
+        player.contacts = normalized.contacts;
         persist.answers(room.id, player.id, answers);
         void buildProfile(room, player, () => broadcastPlayer(room, player));
         return null;
+      }),
+    );
+
+    socket.on("profile:get", (raw, ack) =>
+      guard(ack, () => {
+        const { target } = groupMember(raw);
+        return { id: target.id, answers: target.answers ?? null, contacts: target.contacts ?? {} };
+      }),
+    );
+
+    socket.on("profile:match", (raw, ack) =>
+      guardAsync(ack, () => {
+        const { room, player, target } = groupMember(raw);
+        return matchSummary(room, player, target);
       }),
     );
 

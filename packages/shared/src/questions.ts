@@ -163,6 +163,18 @@ export function validateAnswers(answers: QuizAnswers): string | null {
   return null;
 }
 
+/** A student's answers in readable form, in question order, skipping anything left blank. */
+export function readableAnswers(answers: QuizAnswers) {
+  const out: Array<{ id: string; topic: string; answer: string }> = [];
+  for (const q of QUESTIONS) {
+    const value = answers[q.id]?.trim();
+    if (!value) continue;
+    const answer = q.kind === "choice" ? q.options.find((o) => o.id === value)?.label : value;
+    if (answer) out.push({ id: q.id, topic: q.topic, answer });
+  }
+  return out;
+}
+
 /** Turns answers into "Q: … / A: …" lines, the shared input for Gemini and fallbacks. */
 export function describeAnswers(answers: QuizAnswers) {
   const lines: string[] = [];

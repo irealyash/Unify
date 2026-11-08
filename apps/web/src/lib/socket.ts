@@ -27,12 +27,21 @@ type RequestData<E extends RequestEvent> =
   Parameters<Events[E]> extends [...unknown[], Ack<infer T>] ? T : never;
 
 /** Emits an event, waits for the server's ack, and returns its data or throws its error. */
-export async function request<E extends RequestEvent>(
+export function request<E extends RequestEvent>(
+  event: E,
+  ...args: RequestArgs<E>
+): Promise<RequestData<E>> {
+  return requestWithin(REQUEST_TIMEOUT_MS, event, ...args);
+}
+
+/** `request` with a custom time limit, for events the server may take a while to answer. */
+export async function requestWithin<E extends RequestEvent>(
+  timeoutMs: number,
   event: E,
   ...args: RequestArgs<E>
 ): Promise<RequestData<E>> {
   // socket.io's types drop the ack's payload type once a timeout is set, so we restore it here.
-  const timed = socket.timeout(REQUEST_TIMEOUT_MS) as unknown as {
+  const timed = socket.timeout(timeoutMs) as unknown as {
     emitWithAck(event: string, ...args: unknown[]): Promise<AckResult<RequestData<E>>>;
   };
   const result = await timed.emitWithAck(event, ...args);

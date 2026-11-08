@@ -1,11 +1,22 @@
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { QUESTIONS, validateAnswers, type QuizAnswers } from "@unify/shared";
+import {
+  CONTACT_FIELDS,
+  QUESTIONS,
+  normalizeContacts,
+  validateAnswers,
+  type ContactLinks,
+  type QuizAnswers,
+} from "@unify/shared";
 import { request } from "@/lib/socket";
 import { cn } from "@/lib/utils";
 
 const draftKey = (code: string) => `unify:draft:${code}`;
+const contactsKey = (code: string) => `unify:draft-contacts:${code}`;
+
+/** The questions, then one last step for contact links. */
+const STEPS = QUESTIONS.length + 1;
 
 function loadDraft(code: string): QuizAnswers {
   try {
@@ -24,9 +35,27 @@ function saveDraft(code: string, answers: QuizAnswers | null) {
   }
 }
 
+function loadContacts(code: string): ContactLinks {
+  try {
+    return JSON.parse(localStorage.getItem(contactsKey(code)) ?? "{}") as ContactLinks;
+  } catch {
+    return {};
+  }
+}
+
+function saveContacts(code: string, contacts: ContactLinks | null) {
+  try {
+    if (contacts) localStorage.setItem(contactsKey(code), JSON.stringify(contacts));
+    else localStorage.removeItem(contactsKey(code));
+  } catch {
+    // Storage blocked: the draft just won't survive a refresh.
+  }
+}
+
 /** One-question-at-a-time questionnaire shown over the lobby while the quiz is open. */
 export function QuizPanel({ code, retry }: { code: string; retry?: boolean }) {
   const [answers, setAnswers] = useState<QuizAnswers>(() => loadDraft(code));
+  const [contacts, setContacts] = useState<ContactLinks>(() => loadContacts(code));
   const [step, setStep] = useState(() => {
     const first = QUESTIONS.findIndex((q) => q.kind === "choice" && !loadDraft(code)[q.id]);
     return first === -1 ? 0 : first;
@@ -35,26 +64,25 @@ export function QuizPanel({ code, retry }: { code: string; retry?: boolean }) {
   const advanceTimer = useRef<number | undefined>(undefined);
 
   useEffect(() => saveDraft(code, answers), [code, answers]);
+  useEffect(() => saveContacts(code, contacts), [code, contacts]);
   useEffect(() => () => window.clearTimeout(advanceTimer.current), []);
 
-  const question = QUESTIONS[step]!;
-  const isLast = step === QUESTIONS.length - 1;
-  const value = answers[question.id] ?? "";
-  const canContinue = question.kind === "text" ? !question.required || value.trim() : value;
+  const question = QUESTIONS[step];
+  const isLast = step === STEPS - 1;
+  const value = question ? (answers[question.id] ?? "") : "";
+  const canContinue = question?.kind === "text" ? !question.required || value.trim() : value;
 
   const setAnswer = (id: string, next: string) => setAnswers((a) => ({ ...a, [id]: next }));
   const goTo = (next: number) => {
     window.clearTimeout(advanceTimer.current);
-    setStep(Math.max(0, Math.min(QUESTIONS.length - 1, next)));
+    setStep(Math.max(0, Math.min(STEPS - 1, next)));
   };
 
-  function choose(optionId: string) {
-    setAnswer(question.id, optionId);
+  function choose(questionId: string, optionId: string) {
+    setAnswer(questionId, optionId);
     // Kahoot-style: picking an option moves on after a beat.
-    if (!isLast) {
-      window.clearTimeout(advanceTimer.current);
-      advanceTimer.current = window.setTimeout(() => setStep((s) => s + 1), 280);
-    }
+    window.clearTimeout(advanceTimer.current);
+    advanceTimer.current = window.setTimeout(() => setStep((s) => s + 1), 280);
   }
 
   async function submit() {
@@ -65,10 +93,16 @@ export function QuizPanel({ code, retry }: { code: string; retry?: boolean }) {
       toast.error(problem);
       return;
     }
+    const checked = normalizeContacts(contacts);
+    if ("error" in checked) {
+      toast.error(checked.error);
+      return;
+    }
     setSubmitting(true);
     try {
-      await request("quiz:submit", answers);
+      await request("quiz:submit", { answers, contacts: checked.contacts });
       saveDraft(code, null);
+      saveContacts(code, null);
       toast.success("Answers in! Hang tight for the sort.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not submit");
@@ -80,24 +114,43 @@ export function QuizPanel({ code, retry }: { code: string; retry?: boolean }) {
     <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 p-4 backdrop-blur-[2px]">
       <div className="w-full max-w-xl rounded-2xl border border-[#e3e5ea] bg-white p-6 text-[#0f1222] shadow-[0_24px_60px_-24px_rgba(15,18,34,0.35)] sm:p-8">
         <div className="mb-6 flex items-center justify-between gap-4 text-sm text-[#6b7080]">
-          <span>
-            Question {step + 1} of {QUESTIONS.length}
-          </span>
+          <span>{question ? `Question ${step + 1} of ${QUESTIONS.length}` : "Last step"}</span>
           {retry ? <span className="text-[#c2410c]">Something went wrong, please submit again</span> : null}
         </div>
         <div className="mb-7 h-1.5 overflow-hidden rounded-full bg-[#eef0f4]">
           <div
             className="h-full rounded-full bg-[#5b5ce2] transition-all duration-300"
-            style={{ width: `${((step + 1) / QUESTIONS.length) * 100}%` }}
+            style={{ width: `${((step + 1) / STEPS) * 100}%` }}
           />
         </div>
 
         <h2 className="text-balance text-xl font-semibold leading-snug sm:text-2xl">
-          {question.prompt}
+          {question ? question.prompt : "How can your group reach you?"}
         </h2>
 
         <div className="mt-6">
-          {question.kind === "choice" ? (
+          {!question ? (
+            <div className="space-y-3">
+              {CONTACT_FIELDS.map((field) => (
+                <label key={field.id} className="flex items-center gap-3 text-sm">
+                  <span className="w-20 shrink-0 text-[#6b7080]">{field.label}</span>
+                  <input
+                    type={field.id === "email" ? "email" : "text"}
+                    value={contacts[field.id] ?? ""}
+                    onChange={(e) => setContacts((c) => ({ ...c, [field.id]: e.target.value }))}
+                    placeholder={field.placeholder}
+                    maxLength={200}
+                    autoComplete="off"
+                    className="min-w-0 flex-1 rounded-xl border border-[#e3e5ea] px-3.5 py-2.5 text-[15px] outline-none transition placeholder:text-[#a0a4b3] focus:border-[#5b5ce2]"
+                  />
+                </label>
+              ))}
+              <p className="pt-1 text-sm text-[#6b7080]">
+                All optional. Once you're sorted, the people in your group can see these links and your
+                questionnaire answers, including anything you wrote yourself.
+              </p>
+            </div>
+          ) : question.kind === "choice" ? (
             <div className="grid gap-2.5">
               {question.options.map((option) => {
                 const selected = value === option.id;
@@ -105,7 +158,7 @@ export function QuizPanel({ code, retry }: { code: string; retry?: boolean }) {
                   <button
                     key={option.id}
                     type="button"
-                    onClick={() => choose(option.id)}
+                    onClick={() => choose(question.id, option.id)}
                     className={cn(
                       "flex items-center justify-between gap-3 rounded-xl border px-4 py-3.5 text-left text-[15px] transition",
                       selected
@@ -167,7 +220,7 @@ export function QuizPanel({ code, retry }: { code: string; retry?: boolean }) {
               disabled={!canContinue}
               className="flex items-center gap-2 rounded-xl bg-[#0f1222] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#262a40] disabled:opacity-40"
             >
-              {question.kind === "text" && !value.trim() ? "Skip" : "Next"}
+              {question?.kind === "text" && !value.trim() ? "Skip" : "Next"}
               <ArrowRight className="h-4 w-4" />
             </button>
           )}
