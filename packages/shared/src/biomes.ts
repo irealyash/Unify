@@ -65,8 +65,9 @@ export const BIOMES: BiomeDef[] = [
       expectations: ["chill", "done"],
     },
     colors: { floor: "#eaf5ec", wall: "#c3e2c9", accent: "#2f9e57" },
-    walkHalf: 12,
-    visualHalf: 21,
+    // Grassy hills around a meadow, with a lake at the bottom; the scenery runs a little past.
+    walkHalf: 15,
+    visualHalf: 20,
   },
 ];
 

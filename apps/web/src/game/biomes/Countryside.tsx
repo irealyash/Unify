@@ -12,6 +12,7 @@ import {
   SphereGeometry,
   type BufferGeometry,
 } from "three";
+import { NOISE_GLSL, fbm } from "./noise";
 import { createRng } from "./random";
 
 /**
@@ -54,39 +55,6 @@ export function Countryside({
       ) : null}
     </>
   );
-}
-
-// ── Terrain ──────────────────────────────────────────────────────────────────
-
-/** Smooth 2D value noise in [0, 1] (deterministic, so every client builds the same hills). */
-function valueNoise(x: number, z: number) {
-  const hash = (i: number, j: number) => {
-    const s = Math.sin(i * 127.1 + j * 311.7) * 43758.5453;
-    return s - Math.floor(s);
-  };
-  const ix = Math.floor(x);
-  const iz = Math.floor(z);
-  const fx = x - ix;
-  const fz = z - iz;
-  const ux = fx * fx * (3 - 2 * fx);
-  const uz = fz * fz * (3 - 2 * fz);
-  const a = hash(ix, iz);
-  const b = hash(ix + 1, iz);
-  const c = hash(ix, iz + 1);
-  const d = hash(ix + 1, iz + 1);
-  return a + (b - a) * ux + (c - a) * uz + (a - b - c + d) * ux * uz;
-}
-
-function fbm(x: number, z: number) {
-  let value = 0;
-  let amp = 0.5;
-  for (let i = 0; i < 4; i++) {
-    value += amp * valueNoise(x, z);
-    x *= 2.03;
-    z *= 2.03;
-    amp *= 0.5;
-  }
-  return value;
 }
 
 // ── Footpaths ────────────────────────────────────────────────────────────────
@@ -139,6 +107,8 @@ const PATHS_GLSL = /* glsl */ `
   }
 `;
 
+// ── Terrain ──────────────────────────────────────────────────────────────────
+
 type Terrain = {
   halfX: number;
   halfZ: number;
@@ -181,21 +151,6 @@ const GROUND_COLORS = {
   plaza: new Color("#ddd1ba"),
   plazaLine: new Color("#b09d7e"),
 };
-
-/** GLSL noise matching the terrain's look (used only for coloring). */
-const NOISE_GLSL = /* glsl */ `
-  float cs_hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-  float cs_noise(vec2 p) {
-    vec2 i = floor(p); vec2 f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f);
-    return mix(mix(cs_hash(i), cs_hash(i + vec2(1.0, 0.0)), u.x),
-               mix(cs_hash(i + vec2(0.0, 1.0)), cs_hash(i + vec2(1.0, 1.0)), u.x), u.y);
-  }
-  float cs_fbm(vec2 p) {
-    float v = 0.0; float a = 0.5;
-    for (int i = 0; i < 4; i++) { v += a * cs_noise(p); p *= 2.03; a *= 0.5; }
-    return v;
-  }
-`;
 
 function Ground({ terrain, size, town }: { terrain: Terrain; size: number; town?: TownGround }) {
   const geometry = useMemo(() => {

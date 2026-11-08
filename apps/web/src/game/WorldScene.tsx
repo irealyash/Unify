@@ -16,9 +16,11 @@ import {
   type PlayerState,
   type Stage,
 } from "@unify/shared";
+import { Highlands } from "./biomes/Highlands";
+import { highlandsGround, highlandsObstacles } from "./biomes/highlandsMap";
 import { TokyoTown } from "./biomes/TokyoTown";
 import { tokyoTownObstacles } from "./biomes/tokyoTownMap";
-import type { Rect } from "./collision";
+import type { GroundHeight, Obstacles } from "./collision";
 import type { CameraRig } from "./LocalPlayer";
 import { LocalPlayer } from "./LocalPlayer";
 import { damp } from "./math";
@@ -58,6 +60,13 @@ const BIOME_ENVS: Partial<Record<BiomeId, Environment>> = {
     hemisphere: ["#ffffff", "#c9c0a8", 1.15],
     sun: { color: "#fff3df", intensity: 2.3, shadows: true },
   },
+  // Sunny hills: the same clear sky, a softer green bounce light.
+  highlands: {
+    background: "#bcdcf5",
+    fog: ["#d3e3ec", 40, 210],
+    hemisphere: ["#ffffff", "#b4c48e", 1.1],
+    sun: { color: "#fff1d6", intensity: 2.3, shadows: true },
+  },
 };
 
 type BiomeSceneProps = {
@@ -69,27 +78,48 @@ type BiomeSceneProps = {
 /** Biomes with a finished themed scene. Others fall back to a plain tinted room. */
 const BIOME_SCENES: Partial<Record<BiomeId, (props: BiomeSceneProps) => React.JSX.Element>> = {
   night_city: TokyoTown,
+  highlands: Highlands,
 };
 
-/** Solid footprints (world space) the local player collides with, per biome. */
-const BIOME_OBSTACLES: Partial<Record<BiomeId, (area: Area) => Rect[]>> = {
-  night_city: (a) => tokyoTownObstacles(a.cx, a.cz),
+/** What the local player collides with (world space), per biome. */
+const BIOME_OBSTACLES: Partial<Record<BiomeId, (area: Area) => Obstacles>> = {
+  night_city: (a) => ({ rects: tokyoTownObstacles(a.cx, a.cz) }),
+  highlands: (a) => highlandsObstacles(a.cx, a.cz),
 };
-const obstacleCache = new Map<BiomeId, Rect[]>();
+const obstacleCache = new Map<BiomeId, Obstacles>();
+
+/** Biomes that aren't flat: the ground height players stand on (world space). */
+const BIOME_GROUND: Partial<Record<BiomeId, (area: Area) => GroundHeight>> = {
+  highlands: (a) => highlandsGround(a.cx, a.cz),
+};
+const groundCache = new Map<BiomeId, GroundHeight>();
+
+function groundFor(biome: BiomeId): GroundHeight | undefined {
+  const build = BIOME_GROUND[biome];
+  if (!build) return undefined;
+  let ground = groundCache.get(biome);
+  if (!ground) {
+    ground = build(biomeArea(biome));
+    groundCache.set(biome, ground);
+  }
+  return ground;
+}
 
 /** Biomes whose scenery wants a different follow camera (e.g. a lower view down city streets). */
 const BIOME_CAMERAS: Partial<Record<BiomeId, CameraRig>> = {
   night_city: { height: 7, distance: 10, lookHeight: 1.8 },
+  highlands: { height: 8, distance: 11, lookHeight: 1.2 },
 };
-function obstaclesFor(biome: BiomeId): Rect[] | undefined {
+
+function obstaclesFor(biome: BiomeId): Obstacles | undefined {
   const build = BIOME_OBSTACLES[biome];
   if (!build) return undefined;
-  let rects = obstacleCache.get(biome);
-  if (!rects) {
-    rects = build(biomeArea(biome));
-    obstacleCache.set(biome, rects);
+  let obstacles = obstacleCache.get(biome);
+  if (!obstacles) {
+    obstacles = build(biomeArea(biome));
+    obstacleCache.set(biome, obstacles);
   }
-  return rects;
+  return obstacles;
 }
 
 type WorldSceneProps = {
@@ -238,6 +268,7 @@ function renderPlayer(
         area={area}
         obstacles={stage === "biomes" && p.placement ? obstaclesFor(p.placement.biome) : undefined}
         rig={stage === "biomes" && p.placement ? BIOME_CAMERAS[p.placement.biome] : undefined}
+        ground={stage === "biomes" && p.placement ? groundFor(p.placement.biome) : undefined}
         frozen={ctx.frozen || ctx.stage === "sorting"}
       />
     );
@@ -247,6 +278,7 @@ function renderPlayer(
       key={`${p.id}:${p.placement?.biome ?? "lobby"}`}
       player={p}
       labelScale={ctx.spectator ? 2.4 : 1}
+      ground={ctx.stage === "biomes" && p.placement ? groundFor(p.placement.biome) : undefined}
     />
   );
 }

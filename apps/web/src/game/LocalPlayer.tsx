@@ -4,7 +4,7 @@ import type { Group } from "three";
 import { MOVE_SPEED, NETWORK_TICK_HZ, clampToArea, type Area, type PlayerState } from "@unify/shared";
 import { socket } from "@/lib/socket";
 import { Avatar } from "./Avatar";
-import { moveWithCollisions, pushOut, type Rect } from "./collision";
+import { NO_OBSTACLES, moveWithCollisions, pushOut, type GroundHeight, type Obstacles } from "./collision";
 import { damp, lerpAngle } from "./math";
 import { poses } from "./store";
 import { readDirection, useMovementKeys } from "./useKeyboard";
@@ -17,14 +17,14 @@ type LocalPlayerProps = {
   player: PlayerState;
   /** Where this player may walk (the lobby, or their biome). */
   area: Area;
-  /** Solid footprints (buildings) to slide around, in world space. */
-  obstacles?: readonly Rect[];
+  /** What to slide around (buildings, trees, water), in world space. */
+  obstacles?: Obstacles;
+  /** Ground height to stand on; flat (0) when not given. */
+  ground?: GroundHeight;
   /** Camera placement; streets lined with tall buildings want a lower, flatter view. */
   rig?: CameraRig;
   frozen?: boolean;
 };
-
-const NO_OBSTACLES: readonly Rect[] = [];
 
 /** The player this browser controls: reads WASD, moves locally, streams pose to the server. */
 export function LocalPlayer({
@@ -32,6 +32,7 @@ export function LocalPlayer({
   area,
   obstacles = NO_OBSTACLES,
   rig = DEFAULT_RIG,
+  ground,
   frozen,
 }: LocalPlayerProps) {
   const group = useRef<Group>(null);
@@ -49,9 +50,10 @@ export function LocalPlayer({
     if (!placed.current) {
       const start = poses.get(player.id) ?? player;
       const free = pushOut(start, obstacles);
-      g.position.set(free.x, 0, free.z);
+      const y = ground ? ground(free.x, free.z) : 0;
+      g.position.set(free.x, y, free.z);
       g.rotation.y = start.rotY;
-      camera.position.set(free.x, rig.height, free.z + rig.distance);
+      camera.position.set(free.x, y + rig.height, free.z + rig.distance);
       placed.current = true;
     }
 
@@ -65,15 +67,17 @@ export function LocalPlayer({
       const next = moveWithCollisions(g.position, wanted, obstacles);
       g.position.x = next.x;
       g.position.z = next.z;
+      if (ground) g.position.y = ground(next.x, next.z);
       g.rotation.y = lerpAngle(g.rotation.y, Math.atan2(dir.x, dir.z), damp(14, delta));
     }
 
-    // Fixed-angle follow camera.
+    // Fixed-angle follow camera (rising and falling with the ground, a little behind it).
     const t = damp(6, delta);
     camera.position.x += (g.position.x - camera.position.x) * t;
-    camera.position.y += (rig.height - camera.position.y) * t;
+    camera.position.y += (g.position.y + rig.height - camera.position.y) * t;
     camera.position.z += (g.position.z + rig.distance - camera.position.z) * t;
-    camera.lookAt(camera.position.x, rig.lookHeight, camera.position.z - rig.distance);
+    const groundUnderCamera = camera.position.y - rig.height;
+    camera.lookAt(camera.position.x, groundUnderCamera + rig.lookHeight, camera.position.z - rig.distance);
 
     const pose = { x: g.position.x, z: g.position.z, rotY: g.rotation.y };
     poses.set(player.id, pose);
