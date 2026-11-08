@@ -63,7 +63,7 @@ export function RemotePlayer({
         // An invisible target, a little wider than the body, so people are easy to click but
         // someone standing in front doesn't cover whoever is behind them.
         <mesh
-          position={[0, 1, 0]}
+          position={[0, 0.62, 0]}
           onClick={(e: ThreeEvent<MouseEvent>) => {
             e.stopPropagation();
             useRoom.getState().setViewing(player.id);
@@ -74,7 +74,7 @@ export function RemotePlayer({
           }}
           onPointerOut={() => setHovered(false)}
         >
-          <cylinderGeometry args={[0.52, 0.52, 2.1, 12]} />
+          <cylinderGeometry args={[0.8, 0.8, 1.25, 12]} />
           <meshBasicMaterial transparent opacity={0} depthWrite={false} />
         </mesh>
       ) : null}
