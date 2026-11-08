@@ -20,6 +20,8 @@ import { Beach } from "./biomes/Beach";
 import { beachGround, beachObstacles } from "./biomes/beachMap";
 import { Highlands } from "./biomes/Highlands";
 import { highlandsGround, highlandsObstacles } from "./biomes/highlandsMap";
+import { Library } from "./biomes/Library";
+import { libraryObstacles } from "./biomes/libraryMap";
 import { TokyoTown } from "./biomes/TokyoTown";
 import { tokyoTownObstacles } from "./biomes/tokyoTownMap";
 import type { GroundHeight, Obstacles } from "./collision";
@@ -76,6 +78,13 @@ const BIOME_ENVS: Partial<Record<BiomeId, Environment>> = {
     hemisphere: ["#fff7ea", "#ecd9ad", 1.25],
     sun: { color: "#ffe9c4", intensity: 2.4, shadows: true },
   },
+  // Indoors: soft, warm light, with darkness beyond the walls.
+  library: {
+    background: "#2a2018",
+    fog: ["#2a2018", 40, 120],
+    hemisphere: ["#fff4e0", "#a98a66", 1.7],
+    sun: { color: "#fff0d8", intensity: 1.15, shadows: true },
+  },
 };
 
 type BiomeSceneProps = {
@@ -89,6 +98,7 @@ const BIOME_SCENES: Partial<Record<BiomeId, (props: BiomeSceneProps) => React.JS
   night_city: TokyoTown,
   highlands: Highlands,
   beach: Beach,
+  library: Library,
 };
 
 /** What the local player collides with (world space), per biome. */
@@ -96,6 +106,7 @@ const BIOME_OBSTACLES: Partial<Record<BiomeId, (area: Area) => Obstacles>> = {
   night_city: (a) => ({ rects: tokyoTownObstacles(a.cx, a.cz) }),
   highlands: (a) => highlandsObstacles(a.cx, a.cz),
   beach: (a) => beachObstacles(a.cx, a.cz),
+  library: (a) => libraryObstacles(a.cx, a.cz),
 };
 const obstacleCache = new Map<BiomeId, Obstacles>();
 
@@ -122,6 +133,8 @@ const BIOME_CAMERAS: Partial<Record<BiomeId, CameraRig>> = {
   night_city: { height: 7, distance: 10, lookHeight: 1.8 },
   highlands: { height: 8, distance: 11, lookHeight: 1.2 },
   beach: { height: 8, distance: 11, lookHeight: 1.2 },
+  // Steep, so you can see over the shelves into the next aisle.
+  library: { height: 9.5, distance: 8.5, lookHeight: 1 },
 };
 
 function obstaclesFor(biome: BiomeId): Obstacles | undefined {

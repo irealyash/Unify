@@ -6,7 +6,7 @@
  * It describes the ideal member of the biome, not the place.
  */
 
-export type BiomeId = "night_city" | "highlands" | "beach";
+export type BiomeId = "night_city" | "highlands" | "beach" | "library";
 
 export type BiomeDef = {
   id: BiomeId;
@@ -36,7 +36,7 @@ export const BIOMES: BiomeDef[] = [
     profile:
       "This student starts work right away and moves fast, finishing well ahead of deadlines with time left to improve it. They are aiming for an A or A+ and treat this project as a top priority. They want an active group chat with quick replies and frequent meetings to keep momentum high. They put in long hours, often into the evening, and naturally take charge as an organizer or a heavy-lifting builder. They expect teammates to hold a high bar, pull equal weight and respond quickly.",
     answerHints: {
-      start: ["right_away", "getting_ahead", "few_days"],
+      start: ["right_away", "few_days"],
       investment: ["priority"],
       communication: ["constant"],
       meetings: ["often"],
@@ -86,6 +86,26 @@ export const BIOMES: BiomeDef[] = [
     // A sandy cove with the sea to the north; a pier reaches out to the walkable edge.
     walkHalf: 15,
     visualHalf: 20,
+  },
+  {
+    id: "library",
+    name: "The Library",
+    tagline: "Quiet, focused, high standards.",
+    profile:
+      "This student starts early and works through the project methodically, finishing ahead of the deadline with time to refine it. They are aiming for an A or A+ and treat this project as a top priority. They prefer to work quietly and independently, with short written updates and as few meetings as possible. They do their best work alone in long, focused sessions, often as the writer or researcher who goes deep on the hard parts. They expect teammates to produce high-quality work, pull equal weight and not need constant check-ins.",
+    answerHints: {
+      start: ["getting_ahead"],
+      investment: ["priority"],
+      communication: ["weekly_update"],
+      meetings: ["rarely"],
+      schedule: ["morning", "late_night"],
+      role: ["writer"],
+      expectations: ["high_bar"],
+    },
+    colors: { floor: "#f3ebdd", wall: "#d9cbb2", accent: "#7a4f2e" },
+    // A single big room; players stay just inside its walls.
+    walkHalf: 15,
+    visualHalf: 17,
   },
 ];
 

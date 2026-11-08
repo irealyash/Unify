@@ -62,7 +62,8 @@ export function NameTag({
       scale={[WORLD_HEIGHT * scale * aspect, WORLD_HEIGHT * scale, 1]}
       renderOrder={10}
     >
-      <spriteMaterial map={texture} transparent depthWrite={false} />
+      {/* Drawn over the scenery, so shelves and walls never cut a name off. */}
+      <spriteMaterial map={texture} transparent depthWrite={false} depthTest={false} />
     </sprite>
   );
 }
