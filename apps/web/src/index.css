@@ -19,7 +19,8 @@
   --input: #e2d9cc;
   --ring: #6b8cd1;
   --clay: #dbc7b4;
-  --radius: 0.75rem;
+  /* Corners are kept tight to suit the paper look — sharp, but never square. */
+  --radius: 0.25rem;
   --font-body: "Cormorant Garamond";
   --font-display: "Klee One";
   --font-handwritten: "Klee One";
@@ -44,10 +45,13 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-clay: var(--clay);
-  --radius-sm: calc(var(--radius) - 4px);
+  /* Tighter steps than the default scale, so even the largest stays crisp
+     and the smallest keeps a touch of rounding rather than hitting zero. */
+  --radius-sm: calc(var(--radius) - 2px);
   --radius-md: var(--radius);
-  --radius-lg: calc(var(--radius) + 4px);
-  --radius-xl: calc(var(--radius) + 8px);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 6px);
   --font-sans: var(--font-body), system-ui, sans-serif;
   --font-serif: var(--font-body), system-ui, serif;
   --font-display: var(--font-display), system-ui, sans-serif;

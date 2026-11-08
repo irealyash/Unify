@@ -3,6 +3,8 @@ import { Link, useParams, useSearchParams } from "react-router";
 import {
   BIOMES,
   BIOME_BY_ID,
+  HATS,
+  MOUTHS,
   PLAYER_COLORS,
   biomeArea,
   isBiomeId,
@@ -40,6 +42,9 @@ export function PreviewPage() {
           id: isSelf ? SELF_ID : `dummy-${b.id}-${i}`,
           name: isSelf ? "Preview" : `${b.name.split(" ")[0]} ${i}`,
           color: PLAYER_COLORS[(i + (b.id === biome ? 0 : 4)) % PLAYER_COLORS.length]!,
+          // Cycle the hats so the preview shows each one off.
+          hat: HATS[(i + (b.id === biome ? 0 : 2)) % HATS.length]!.id,
+          mouth: MOUTHS[(i + (b.id === biome ? 0 : 3)) % MOUTHS.length]!.id,
           x: area.cx + (isSelf && start ? start.x : spot.x),
           z: area.cz + (isSelf && start ? start.z : spot.z),
           rotY: 0,

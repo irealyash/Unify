@@ -99,7 +99,7 @@ export function LocalPlayer({
 
   return (
     <group ref={group}>
-      <Avatar name={player.name} color={player.color} isSelf />
+      <Avatar name={player.name} color={player.color} hat={player.hat} mouth={player.mouth} isSelf />
     </group>
   );
 }

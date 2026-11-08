@@ -14,18 +14,63 @@ export const NETWORK_TICK_HZ = 15;
 export const MAX_NAME_LENGTH = 32;
 export const MAX_PLAYERS_PER_ROOM = 120;
 
+/** Character colours, ordered around the colour wheel from red to pink. */
 export const PLAYER_COLORS = [
-  "#f87171",
-  "#fb923c",
-  "#facc15",
-  "#4ade80",
-  "#2dd4bf",
-  "#38bdf8",
-  "#818cf8",
-  "#c084fc",
-  "#f472b6",
-  "#a3e635",
+  "#E77878",
+  "#FFA860",
+  "#F4D175",
+  "#9BEE94",
+  "#72BBA0",
+  "#A6B5B3",
+  "#61C2DD",
+  "#7A97DC",
+  "#AA6FD5",
+  "#F9AFBD",
 ] as const;
+
+/** Hats a player can put on their character. */
+export const HATS = [
+  { id: "none", label: "None" },
+  { id: "headphones", label: "Headphones" },
+  { id: "bow", label: "Bow" },
+  { id: "propeller", label: "Propeller" },
+  { id: "flower", label: "Flower" },
+  { id: "party", label: "Party hat" },
+  { id: "grad", label: "Grad cap" },
+] as const;
+
+export type HatId = (typeof HATS)[number]["id"];
+
+export function isHatId(value: unknown): value is HatId {
+  return HATS.some((h) => h.id === value);
+}
+
+/** Mouth shapes a player can give their character. */
+export const MOUTHS = [
+  { id: "smile", label: "Smile" },
+  { id: "frown", label: "Frown" },
+  { id: "v", label: "Little v" },
+  { id: "circle", label: "Circle" },
+  { id: "flat", label: "Flat" },
+  { id: "cat", label: "Cat" },
+] as const;
+
+export type MouthId = (typeof MOUTHS)[number]["id"];
+
+export function isMouthId(value: unknown): value is MouthId {
+  return MOUTHS.some((m) => m.id === value);
+}
+
+export function isPlayerColor(value: unknown): value is string {
+  return typeof value === "string" && (PLAYER_COLORS as readonly string[]).includes(value);
+}
+
+/** What a player may change about their own character. */
+export type Customisation = {
+  color: string;
+  hat: HatId;
+  mouth: MouthId;
+};
 
 export type Pose = {
   x: number;
@@ -44,6 +89,8 @@ export type PlayerState = Pose & {
   id: string;
   name: string;
   color: string;
+  hat: HatId;
+  mouth: MouthId;
   connected: boolean;
   quiz: QuizStatus;
   /** Set once the room has been sorted. */

@@ -87,6 +87,8 @@ export class RoomStore {
       token: randomUUID(),
       name,
       color: PLAYER_COLORS[room.players.size % PLAYER_COLORS.length]!,
+      hat: "none",
+      mouth: "v",
       ...spawnPose(),
       connected: false,
       quiz: "answering",
@@ -108,8 +110,8 @@ function spawnPose() {
 }
 
 export function toPublicPlayer(player: Player): PlayerState {
-  const { id, name, color, x, z, rotY, connected, quiz, placement } = player;
-  return { id, name, color, x, z, rotY, connected, quiz, placement };
+  const { id, name, color, hat, mouth, x, z, rotY, connected, quiz, placement } = player;
+  return { id, name, color, hat, mouth, x, z, rotY, connected, quiz, placement };
 }
 
 export function toSnapshot(room: Room): RoomSnapshot {
