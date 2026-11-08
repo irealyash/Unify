@@ -22,7 +22,7 @@ export function SortingOverlay({ players }: { players: PlayerState[] }) {
   const [left, right] = [BIOMES[0]!, BIOMES[BIOMES.length - 1]!];
 
   return (
-    <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-10 bg-white/75 px-4 text-[#0f1222] backdrop-blur-sm">
+    <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-10 bg-card/85 px-4 text-card-foreground backdrop-blur-sm">
       <div className="flex items-center gap-6 sm:gap-14">
         <BiomeChip name={left.name} color={left.colors.accent} side="left" />
 
@@ -64,8 +64,10 @@ export function SortingOverlay({ players }: { players: PlayerState[] }) {
       </div>
 
       <div className="text-center">
-        <h2 className="font-display text-3xl font-semibold tracking-tight">Sorting into biomes</h2>
-        <p key={message} className="unify-fade-in mt-2 text-[#6b7080]">
+        <h2 className="font-display text-3xl font-semibold tracking-tight text-primary">
+          Sorting into biomes
+        </h2>
+        <p key={message} className="unify-fade-in mt-2 font-serif text-muted-foreground">
           {MESSAGES[message]}
         </p>
       </div>
@@ -76,7 +78,7 @@ export function SortingOverlay({ players }: { players: PlayerState[] }) {
 function BiomeChip({ name, color, side }: { name: string; color: string; side: "left" | "right" }) {
   return (
     <div
-      className="unify-pulse hidden h-28 w-28 flex-col items-center justify-center rounded-2xl text-center text-sm font-semibold text-white shadow-lg sm:flex"
+      className="unify-pulse hidden h-28 w-28 flex-col items-center justify-center rounded-2xl text-center font-handwritten text-sm font-semibold text-primary-foreground shadow-[4px_6px_0_rgba(60,75,129,0.25)] sm:flex"
       style={{ background: color, animationDelay: side === "left" ? "0s" : "0.6s" }}
     >
       {name}
