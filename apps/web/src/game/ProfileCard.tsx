@@ -59,9 +59,9 @@ export function ProfileCard({ player, onClose }: { player: PlayerState; onClose:
   return (
     <aside
       aria-label={`${player.name}'s profile`}
-      className="unify-pop absolute inset-x-3 bottom-3 top-24 z-20 flex flex-col overflow-hidden rounded-2xl bg-white text-[#0f1222] shadow-[0_24px_60px_-24px_rgba(15,18,34,0.45)] sm:left-auto sm:right-4 sm:w-[370px]"
+      className="unify-pop absolute inset-x-3 bottom-3 top-24 z-20 flex flex-col overflow-hidden rounded-2xl bg-card text-[#0f1222] shadow-[0_24px_60px_-24px_rgba(15,18,34,0.45)] sm:left-auto sm:right-4 sm:w-[370px]"
     >
-      <header className="flex items-center gap-3 border-b border-[#eef0f4] px-5 py-4">
+      <header className="flex items-center gap-3 border-b border-border px-5 py-4">
         <span className="h-4 w-4 shrink-0 rounded-full" style={{ background: player.color }} />
         <h2 className="min-w-0 flex-1 truncate font-display text-xl font-semibold tracking-tight">{player.name}</h2>
         {!player.connected ? <span className="text-xs text-[#8a8fa0]">Away</span> : null}
@@ -69,15 +69,15 @@ export function ProfileCard({ player, onClose }: { player: PlayerState; onClose:
           type="button"
           onClick={onClose}
           aria-label="Close profile"
-          className="rounded-lg p-1.5 text-[#6b7080] transition hover:bg-[#f3f4f7] hover:text-[#0f1222]"
+          className="rounded-lg p-1.5 text-[#6b7080] transition hover:bg-clay/40 hover:text-[#0f1222]"
         >
           <X className="h-4 w-4" />
         </button>
       </header>
 
       <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5">
-        <section className="rounded-xl bg-[#5b5ce2]/8 p-4">
-          <h3 className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-[#4c4dd0]">
+        <section className="rounded-xl bg-clay/35 p-4">
+          <h3 className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-primary">
             {match.status === "ready" && match.data.source === "template" ? null : <Sparkles className="h-3.5 w-3.5" />}
             Why you match
           </h3>
@@ -143,7 +143,7 @@ function ContactRow({ id, label, value }: { id: ContactId; label: string; value:
       <span className="min-w-0 flex-1 truncate text-left font-medium">{value}</span>
     </>
   );
-  const rowClass = "flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-sm transition hover:bg-[#f3f4f7]";
+  const rowClass = "flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-sm transition hover:bg-clay/40";
 
   if (href) {
     return (

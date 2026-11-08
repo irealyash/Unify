@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { create } from "zustand";
-import type { PlayerState, Pose, RoomSnapshot, Stage } from "@unify/shared";
+import type { BiomeId, PlayerState, Pose, RoomSnapshot, Stage } from "@unify/shared";
 import { socket } from "@/lib/socket";
 
 type RoomState = {
@@ -12,6 +12,9 @@ type RoomState = {
   /** The teammate whose profile card is open. */
   viewingId: string | null;
   setViewing: (id: string | null) => void;
+  /** The biome the host has zoomed in on, if any. */
+  hostFocus: BiomeId | null;
+  setHostFocus: (biome: BiomeId | null) => void;
   applySnapshot: (snapshot: RoomSnapshot, selfId?: string | null) => void;
   upsertPlayer: (player: PlayerState) => void;
   markLeft: (id: string) => void;
@@ -29,6 +32,8 @@ export const useRoom = create<RoomState>((set, get) => ({
   players: {},
   viewingId: null,
   setViewing: (viewingId) => set({ viewingId }),
+  hostFocus: null,
+  setHostFocus: (hostFocus) => set({ hostFocus }),
   applySnapshot: (snapshot, selfId = null) => {
     poses.clear();
     const players: Record<string, PlayerState> = {};
@@ -36,7 +41,13 @@ export const useRoom = create<RoomState>((set, get) => ({
       players[p.id] = p;
       poses.set(p.id, { x: p.x, z: p.z, rotY: p.rotY });
     }
-    set({ code: snapshot.code, stage: snapshot.stage, selfId, players });
+    set((s) => ({
+      code: snapshot.code,
+      stage: snapshot.stage,
+      selfId,
+      players,
+      hostFocus: snapshot.stage === "biomes" ? s.hostFocus : null,
+    }));
   },
   upsertPlayer: (player) => {
     // Keep our own locally-simulated pose; the server echo would make us snap back.
@@ -62,7 +73,7 @@ export const useRoom = create<RoomState>((set, get) => ({
   },
   reset: () => {
     poses.clear();
-    set({ code: null, stage: "lobby", selfId: null, players: {}, viewingId: null });
+    set({ code: null, stage: "lobby", selfId: null, players: {}, viewingId: null, hostFocus: null });
   },
 }));
 

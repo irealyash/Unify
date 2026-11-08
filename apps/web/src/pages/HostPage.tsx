@@ -2,7 +2,7 @@ import { ArrowLeft, Play, Plus, Shuffle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
-import { BIOMES, type HostSession, type PlayerState, type SortMethod } from "@unify/shared";
+import { BIOMES, BIOME_BY_ID, type HostSession, type PlayerState, type SortMethod } from "@unify/shared";
 import { BookmarkTag } from "@/components/BookmarkTag";
 import { GoogleAuthButton } from "@/components/GoogleAuthButton";
 import { ModelCredits, OVER_SCENE_TEXT, TestModeBox } from "@/components/PageExtras";
@@ -17,6 +17,34 @@ import { onEveryConnect, request } from "@/lib/socket";
 import { hostStorage } from "@/lib/storage";
 import { isTestMode } from "@/lib/testMode";
 import { cn } from "@/lib/utils";
+
+/** Shown while the host is zoomed in on a biome: returns to the view of them all. */
+function ZoomBackButton() {
+  const focus = useRoom((s) => s.hostFocus);
+  const setFocus = useRoom((s) => s.setHostFocus);
+
+  useEffect(() => {
+    if (!focus) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFocus(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [focus, setFocus]);
+
+  if (!focus) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => setFocus(null)}
+      className="hud absolute left-4 top-4 z-10 flex items-center gap-2 rounded-xl px-4 py-2.5 text-lg transition hover:opacity-90"
+    >
+      <ArrowLeft className="h-5 w-5" />
+      Back
+      <span className="hud-muted ml-1">· {BIOME_BY_ID.get(focus)!.name}</span>
+    </button>
+  );
+}
 
 export function HostPage() {
   const { isAuthenticated, ready: authReady, ensureSocketAuth } = useGoogleAuth();
@@ -167,6 +195,7 @@ export function HostPage() {
           </div>
         ) : null}
         {stage === "sorting" ? <SortingOverlay players={roster} /> : null}
+        {stage === "biomes" ? <ZoomBackButton /> : null}
       </div>
 
       <aside className="relative flex w-full flex-col gap-4 border-t border-border bg-card p-5 text-card-foreground lg:w-80 lg:border-l lg:border-t-0">

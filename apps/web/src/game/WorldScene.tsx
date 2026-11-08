@@ -1,11 +1,12 @@
 import { Grid, Stars } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Bloom, EffectComposer, ToneMapping } from "@react-three/postprocessing";
 import { ToneMappingMode } from "postprocessing";
 import { Object3D, Vector3, type DirectionalLight, type PerspectiveCamera } from "three";
 import {
   BIOMES,
+  BIOME_BY_ID,
   LOBBY_AREA,
   biomeArea,
   biomesExtent,
@@ -164,6 +165,7 @@ export function WorldScene({ selfId, spectator, frozen }: WorldSceneProps) {
   const players = useRoom((s) => s.players);
   const self = selfId ? players[selfId] : undefined;
   const inBiomes = stage === "biomes";
+  const hostFocus = useRoom((s) => s.hostFocus);
 
   // Which biomes to draw: all for the host, only your own for a player.
   const biomes: BiomeDef[] = !inBiomes
@@ -193,7 +195,11 @@ export function WorldScene({ selfId, spectator, frozen }: WorldSceneProps) {
       camera={{ position: spectator ? [0, 26, 22] : [0, 9, 11], fov: spectator ? 45 : 50 }}
       onCreated={({ camera }) => camera.lookAt(0, 0, 0)}
       // Clicking anywhere that isn't a teammate closes their profile card.
-      onPointerMissed={() => useRoom.getState().setViewing(null)}
+      onPointerMissed={() => {
+        useRoom.getState().setViewing(null);
+        // For the host, clicking the empty grid zooms back out too.
+        if (spectator) useRoom.getState().setHostFocus(null);
+      }}
     >
       <color attach="background" args={[env.background]} />
       <fog attach="fog" args={spectator ? [BG, 300, 600] : env.fog} />
@@ -207,6 +213,8 @@ export function WorldScene({ selfId, spectator, frozen }: WorldSceneProps) {
 
       {/* The lobby floats in front of this grid, and so do the biomes in the host's overview. */}
       {!inBiomes || spectator ? <GridBackdrop background={BG} /> : null}
+
+      {inBiomes && spectator ? biomes.map((b) => <BiomeClickArea key={b.id} biome={b} />) : null}
 
       {inBiomes ? (
         biomes.map((b) => {
@@ -229,7 +237,7 @@ export function WorldScene({ selfId, spectator, frozen }: WorldSceneProps) {
         <Room area={LOBBY_AREA} floor="#ffffff" wall="#e4e6ec" grid="#d3d7e0" />
       )}
 
-      {visible.map((p) => renderPlayer(p, { selfId, spectator, frozen, stage }))}
+      {visible.map((p) => renderPlayer(p, { selfId, spectator, frozen, stage, zoomed: Boolean(hostFocus) }))}
 
       {env.bloom ? (
         // Neon and lit windows (colors pushed above 1.0) glow; everything else is untouched.
@@ -289,7 +297,7 @@ export function Sun({
 
 function renderPlayer(
   p: PlayerState,
-  ctx: { selfId?: string | null; spectator?: boolean; frozen?: boolean; stage: Stage },
+  ctx: { selfId?: string | null; spectator?: boolean; frozen?: boolean; stage: Stage; zoomed?: boolean },
 ) {
   if (p.id === ctx.selfId && !ctx.spectator) {
     const stage = ctx.stage === "biomes" ? "biomes" : "lobby";
@@ -311,7 +319,7 @@ function renderPlayer(
     <RemotePlayer
       key={`${p.id}:${p.placement?.biome ?? "lobby"}`}
       player={p}
-      labelScale={ctx.spectator ? 2.4 : 1}
+      labelScale={ctx.spectator ? (ctx.zoomed ? 1.3 : 2.4) : 1}
       clickable={ctx.stage === "biomes" && !ctx.spectator}
       ground={ctx.stage === "biomes" && p.placement ? groundFor(p.placement.biome) : undefined}
     />
@@ -329,12 +337,52 @@ const SPECTATOR_DIRECTION = new Vector3(0, 1, 0.85).normalize();
 /** Breathing room around the framed area. */
 const SPECTATOR_MARGIN = 1.12;
 
-/** Host camera: frames the lobby, then pulls back so every biome fits on screen. */
+/** An invisible patch over a biome: clicking it zooms the host's camera in on that biome. */
+function BiomeClickArea({ biome }: { biome: BiomeDef }) {
+  const area = biomeArea(biome.id);
+  const zoomedHere = useRoom((s) => s.hostFocus === biome.id);
+  const [hovered, setHovered] = useState(false);
+
+  useEffect(() => {
+    if (!hovered || zoomedHere) return;
+    document.body.style.cursor = "pointer";
+    return () => {
+      document.body.style.cursor = "";
+    };
+  }, [hovered, zoomedHere]);
+
+  return (
+    <mesh
+      position={[area.cx, 0.05, area.cz]}
+      rotation-x={-Math.PI / 2}
+      onClick={(e) => {
+        e.stopPropagation();
+        useRoom.getState().setHostFocus(biome.id);
+      }}
+      onPointerOver={() => setHovered(true)}
+      onPointerOut={() => setHovered(false)}
+    >
+      <planeGeometry args={[biome.visualHalf * 2, biome.visualHalf * 2]} />
+      <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+    </mesh>
+  );
+}
+
+/**
+ * Host camera: frames the lobby, then pulls back so every biome fits on screen, and glides in
+ * on one biome when the host clicks it.
+ */
 function SpectatorCamera({ wide }: { wide: boolean }) {
   const { camera, size } = useThree();
   const target = useRef(new Vector3());
+  const lookTarget = useRef(new Vector3());
+  const look = useRef(new Vector3());
+  const focus = useRoom((s) => s.hostFocus);
   useFrame((_, delta) => {
-    const { width, depth } = worldExtent(wide);
+    const zoomed = wide ? focus : null;
+    const area = zoomed ? biomeArea(zoomed) : null;
+    const span = zoomed ? BIOME_BY_ID.get(zoomed)!.visualHalf * 2 : 0;
+    const { width, depth } = zoomed ? { width: span, depth: span } : worldExtent(wide);
     const vfov = ((camera as PerspectiveCamera).fov * Math.PI) / 180;
     const hfov = 2 * Math.atan(Math.tan(vfov / 2) * (size.width / size.height));
     // Far enough that the nearest edge fits, height and width, seen from the camera's tilt.
@@ -346,9 +394,12 @@ function SpectatorCamera({ wide }: { wide: boolean }) {
         toNearEdge + ((depth / 2) * rise) / Math.tan(vfov / 2),
         toNearEdge + width / 2 / Math.tan(hfov / 2),
       );
-    target.current.copy(SPECTATOR_DIRECTION).multiplyScalar(distance);
-    camera.position.lerp(target.current, damp(2.5, Math.min(delta, 0.1)));
-    camera.lookAt(0, 0, 0);
+    lookTarget.current.set(area?.cx ?? 0, 0, area?.cz ?? 0);
+    target.current.copy(SPECTATOR_DIRECTION).multiplyScalar(distance).add(lookTarget.current);
+    const t = damp(2.5, Math.min(delta, 0.1));
+    camera.position.lerp(target.current, t);
+    look.current.lerp(lookTarget.current, t);
+    camera.lookAt(look.current);
   });
   return null;
 }
