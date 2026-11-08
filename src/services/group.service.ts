@@ -18,6 +18,7 @@ export type CreateGroupInput = {
   name: string;
   description?: string;
   code?: string;
+  createdByUserId?: string;
   questions?: Array<{
     prompt: string;
     questionType: "multiple_choice" | "free_text";
@@ -54,6 +55,7 @@ export async function createGroup(input: CreateGroupInput) {
       codeNormalized: code,
       name,
       description: input.description?.trim() || "",
+      createdByUserId: input.createdByUserId,
     })
     .returning();
 

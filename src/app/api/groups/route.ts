@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { jsonError, jsonOk } from "@/lib/api";
+import { requireUser } from "@/lib/auth/current-user";
 import { createGroup } from "@/services/group.service";
 
 const optionSchema = z.object({
@@ -24,8 +25,9 @@ const bodySchema = z.object({
 
 export async function POST(req: Request) {
   try {
+    const user = await requireUser();
     const body = bodySchema.parse(await req.json());
-    const group = await createGroup(body);
+    const group = await createGroup({ ...body, createdByUserId: user.id });
     return jsonOk({ group }, { status: 201 });
   } catch (error) {
     return jsonError(error);

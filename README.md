@@ -1,41 +1,43 @@
 # Mutual
 
-UBC classroom group-project matching. Students join with a shared code, answer a short working-style quiz, get embedded into a vector, and land in a biome with classmates who work similarly.
-
-No signup, no Google login, no chat — cookie session + quiz + biomes only.
+UBC classroom group-project matching. Sign in with **Google (Auth0)**, join a shared code, answer a working-style quiz once, and land in a biome with classmates who work similarly. Identical quizzes reuse saved answers.
 
 ## Stack
 
 - Next.js App Router · TypeScript · Tailwind CSS · Framer Motion
-- Neon PostgreSQL + pgvector · Drizzle ORM
+- Auth0 (Google only) · Neon PostgreSQL + pgvector · Drizzle ORM
 - Gemini embeddings · TanStack Query · Zod
 
 ## Quick start
 
 ```bash
 cp .env.example .env.local
-# set DATABASE_URL + GEMINI_API_KEY
+# set DATABASE_URL, GEMINI_API_KEY, and Auth0 vars
 
 npm install
-npx tsx scripts/push-group-schema.ts
+npm run db:push
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
-1. `/create-group` — name, description, code, edit quiz questions  
-2. `/` — classmates enter code + official name  
-3. `/quiz` — answer questions → vector match  
-4. `/biome/[id]` — biome placeholder + Members list  
+1. Sign in with Google  
+2. `/create-group` — name, description, code, edit quiz  
+3. `/` — classmates enter code + official name  
+4. Quiz once → biome (skipped when questions match a prior save)  
 
-Full system notes: [EXPLANATION.md](./EXPLANATION.md)
+Full notes: [EXPLANATION.md](./EXPLANATION.md)
 
-## Environment
+## Auth0
 
-| Variable | Purpose |
+Regular Web App with Google social connection enabled.
+
+| Variable | Example |
 |---|---|
-| `DATABASE_URL` | Neon connection string |
-| `GEMINI_API_KEY` | Google AI Studio key |
-| `GEMINI_EMBEDDING_MODEL` | Default `gemini-embedding-001` |
-| `GEMINI_EMBEDDING_DIMENSIONS` | Default `768` |
-| `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` locally |
+| `AUTH0_DOMAIN` | `your-tenant.us.auth0.com` |
+| `AUTH0_CLIENT_ID` | from Auth0 app |
+| `AUTH0_CLIENT_SECRET` | from Auth0 app |
+| `AUTH0_SECRET` | `openssl rand -hex 32` |
+| `APP_BASE_URL` | `http://localhost:3000` |
+
+Callbacks: `{APP_BASE_URL}/auth/callback` · Logout / Web Origin: `{APP_BASE_URL}`

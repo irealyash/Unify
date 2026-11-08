@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
+import { AuthError } from "@/lib/auth/current-user";
 
 export function jsonOk<T>(data: T, init?: ResponseInit) {
   return NextResponse.json(data, init);
 }
 
 export function jsonError(error: unknown, fallbackStatus = 500) {
+  if (error instanceof AuthError) {
+    return NextResponse.json({ error: error.message }, { status: error.status });
+  }
   if (error instanceof ZodError) {
     return NextResponse.json(
       { error: error.issues[0]?.message ?? "Validation failed" },
@@ -16,7 +20,7 @@ export function jsonError(error: unknown, fallbackStatus = 500) {
     const status =
       /not found|no group|session expired/i.test(error.message)
         ? 404
-        : /already|cannot|invalid|must|required|taken|enter|add at least/i.test(
+        : /already|cannot|invalid|must|required|taken|enter|add at least|sign in/i.test(
               error.message,
             )
           ? 400

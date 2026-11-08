@@ -15,6 +15,31 @@ async function main() {
     END $$
   `;
 
+  // Old Clerk-era `users` table conflicts with Auth0 users — archive it once.
+  await sql`
+    DO $$ BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'users' AND column_name = 'clerk_user_id'
+      ) THEN
+        ALTER TABLE users RENAME TO users_clerk_legacy;
+      END IF;
+    END $$
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS users (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      auth0_sub text NOT NULL,
+      email text NOT NULL DEFAULT '',
+      name text NOT NULL DEFAULT '',
+      picture_url text NOT NULL DEFAULT '',
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    )
+  `;
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS users_auth0_sub_uidx ON users (auth0_sub)`;
+
   await sql`
     CREATE TABLE IF NOT EXISTS groups (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -22,11 +47,13 @@ async function main() {
       code_normalized text NOT NULL,
       name text NOT NULL,
       description text NOT NULL DEFAULT '',
+      created_by_user_id uuid REFERENCES users(id) ON DELETE SET NULL,
       created_at timestamptz NOT NULL DEFAULT now(),
       updated_at timestamptz NOT NULL DEFAULT now()
     )
   `;
   await sql`CREATE UNIQUE INDEX IF NOT EXISTS groups_code_normalized_uidx ON groups (code_normalized)`;
+  await sql`ALTER TABLE groups ADD COLUMN IF NOT EXISTS created_by_user_id uuid REFERENCES users(id) ON DELETE SET NULL`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS group_questions (
@@ -68,6 +95,7 @@ async function main() {
     CREATE TABLE IF NOT EXISTS participants (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       group_id uuid NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+      user_id uuid REFERENCES users(id) ON DELETE CASCADE,
       biome_id uuid REFERENCES biomes(id) ON DELETE SET NULL,
       official_name text NOT NULL,
       session_token text NOT NULL,
@@ -76,13 +104,18 @@ async function main() {
       embedding vector(768),
       embedding_model text NOT NULL DEFAULT 'gemini-embedding-001',
       quiz_completed_at timestamptz,
+      reused_answers boolean NOT NULL DEFAULT false,
       created_at timestamptz NOT NULL DEFAULT now(),
       updated_at timestamptz NOT NULL DEFAULT now()
     )
   `;
+  await sql`ALTER TABLE participants ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES users(id) ON DELETE CASCADE`;
+  await sql`ALTER TABLE participants ADD COLUMN IF NOT EXISTS reused_answers boolean NOT NULL DEFAULT false`;
   await sql`CREATE UNIQUE INDEX IF NOT EXISTS participants_session_token_uidx ON participants (session_token)`;
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS participants_group_user_uidx ON participants (group_id, user_id)`;
   await sql`CREATE INDEX IF NOT EXISTS participants_group_idx ON participants (group_id)`;
   await sql`CREATE INDEX IF NOT EXISTS participants_biome_idx ON participants (biome_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS participants_user_idx ON participants (user_id)`;
   await sql`
     DO $$ BEGIN
       CREATE INDEX participants_embedding_idx ON participants USING hnsw (embedding vector_cosine_ops);
@@ -105,7 +138,23 @@ async function main() {
     ON participant_answers (participant_id, question_id)
   `;
 
-  console.log("Group / quiz / biome schema ready.");
+  await sql`
+    CREATE TABLE IF NOT EXISTS user_answer_profiles (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      fingerprint text NOT NULL,
+      answers jsonb NOT NULL DEFAULT '[]'::jsonb,
+      working_style_text text NOT NULL DEFAULT '',
+      embedding vector(768),
+      embedding_model text NOT NULL DEFAULT 'gemini-embedding-001',
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    )
+  `;
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS user_answer_profiles_user_fp_uidx ON user_answer_profiles (user_id, fingerprint)`;
+  await sql`CREATE INDEX IF NOT EXISTS user_answer_profiles_user_idx ON user_answer_profiles (user_id)`;
+
+  console.log("Auth + group / quiz / biome schema ready.");
 }
 
 main().catch((err) => {

@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Users, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { SiteHeader } from "@/components/layout/site-header";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -15,46 +16,13 @@ type Roster = {
   members: Array<{ id: string; officialName: string; quizCompletedAt: string | null }>;
 };
 
-const THEME: Record<
-  string,
-  { sky: string; ground: string; accent: string; label: string }
-> = {
-  forest: {
-    sky: "from-[#0b1f14] via-[#143222] to-[#1f4d33]",
-    ground: "bg-[#2f6b3a]",
-    accent: "bg-emerald-400",
-    label: "Forest",
-  },
-  canyon: {
-    sky: "from-[#2a1208] via-[#5c2a12] to-[#a85a2a]",
-    ground: "bg-[#c97a3a]",
-    accent: "bg-orange-300",
-    label: "Canyon",
-  },
-  meadow: {
-    sky: "from-[#16301f] via-[#2d5a35] to-[#7db86a]",
-    ground: "bg-[#8fc56a]",
-    accent: "bg-lime-300",
-    label: "Meadow",
-  },
-  summit: {
-    sky: "from-[#0d1520] via-[#243447] to-[#6f8aa8]",
-    ground: "bg-[#8aa0b8]",
-    accent: "bg-sky-300",
-    label: "Summit",
-  },
-  river: {
-    sky: "from-[#071820] via-[#0f3a4a] to-[#2a7a8a]",
-    ground: "bg-[#3a8f9a]",
-    accent: "bg-cyan-300",
-    label: "River",
-  },
-  forge: {
-    sky: "from-[#1a0e08] via-[#3d2414] to-[#7a4a22]",
-    ground: "bg-[#8b5a2b]",
-    accent: "bg-amber-300",
-    label: "Forge",
-  },
+const THEME: Record<string, { wash: string; tile: string }> = {
+  forest: { wash: "from-emerald-50 to-white", tile: "bg-emerald-100" },
+  canyon: { wash: "from-orange-50 to-white", tile: "bg-orange-100" },
+  meadow: { wash: "from-lime-50 to-white", tile: "bg-lime-100" },
+  summit: { wash: "from-sky-50 to-white", tile: "bg-sky-100" },
+  river: { wash: "from-cyan-50 to-white", tile: "bg-cyan-100" },
+  forge: { wash: "from-amber-50 to-white", tile: "bg-amber-100" },
 };
 
 export default function BiomePage() {
@@ -89,99 +57,145 @@ export default function BiomePage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0a140f] text-sm text-emerald-100/60">
-        Entering biome…
+      <div className="min-h-screen bg-[#f7f8fa]">
+        <SiteHeader />
+        <div className="py-32 text-center text-sm text-[#9aa0a6]">Entering biome…</div>
       </div>
     );
   }
 
   if (!roster) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6">
-        <p className="text-muted-foreground">Biome not found.</p>
-        <Button asChild>
-          <Link href="/">Back home</Link>
-        </Button>
+      <div className="min-h-screen bg-[#f7f8fa]">
+        <SiteHeader />
+        <div className="mx-auto flex max-w-lg flex-col items-center gap-4 px-6 py-24">
+          <p className="text-[#5f6368]">Biome not found.</p>
+          <Button asChild className="rounded-full bg-[#111] text-white hover:bg-[#222]">
+            <Link href="/">Back home</Link>
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className={cn("relative min-h-screen overflow-hidden bg-gradient-to-b text-white", theme.sky)}>
-      {/* Voxel-ish placeholder world */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-30"
-        style={{
-          backgroundImage:
-            "linear-gradient(to right, rgba(255,255,255,0.06) 2px, transparent 2px), linear-gradient(to bottom, rgba(255,255,255,0.06) 2px, transparent 2px)",
-          backgroundSize: "32px 32px",
-          imageRendering: "pixelated",
-        }}
-      />
+    <div className="min-h-screen bg-[#f7f8fa]">
+      <SiteHeader />
+      <main className="mx-auto grid w-full max-w-6xl gap-6 px-5 py-8 md:grid-cols-[1.45fr_0.85fr] md:px-8">
+        <section className="surface-card relative overflow-hidden p-6 md:p-8">
+          <div className="absolute right-5 top-5 z-10">
+            <Button
+              type="button"
+              onClick={() => setOpen(true)}
+              className="h-10 rounded-full border border-[#e8eaed] bg-white px-4 text-[#111] shadow-sm hover:bg-[#f7f8fa]"
+            >
+              <Users className="h-4 w-4" />
+              Members ({roster.members.length})
+            </Button>
+          </div>
 
-      <motion.div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-[42vh]"
-        initial={{ y: 40, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-      >
-        <div className={cn("absolute inset-x-0 bottom-0 h-[55%] opacity-90", theme.ground)} />
-        <div className="absolute bottom-[48%] left-[12%] h-24 w-24 bg-black/25" />
-        <div className="absolute bottom-[48%] left-[18%] h-16 w-16 bg-black/20" />
-        <div className="absolute bottom-[50%] right-[18%] h-28 w-20 bg-black/25" />
-        <div className="absolute bottom-[52%] right-[28%] h-14 w-14 bg-black/15" />
-        <div
-          className={cn(
-            "absolute bottom-[58%] left-1/2 h-10 w-10 -translate-x-1/2 rounded-sm shadow-[0_0_40px_rgba(255,255,255,0.25)]",
-            theme.accent,
-          )}
-        />
-      </motion.div>
+          <div className="text-xs text-[#9aa0a6]">
+            Home <span className="mx-1.5 text-[#c4c7cc]">/</span> Biome
+          </div>
 
-      <header className="relative z-20 flex items-start justify-between gap-4 px-5 py-5 md:px-8">
-        <div>
-          <Link href="/" className="text-xs text-white/60 hover:text-white">
-            ← Leave biome
-          </Link>
-          <motion.h1
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-3 font-display text-3xl font-semibold tracking-tight md:text-4xl"
+          <div
+            className={cn(
+              "mt-6 overflow-hidden rounded-xl border border-[#eceff3] bg-gradient-to-br",
+              theme.wash,
+            )}
           >
+            <div className="relative flex aspect-[16/9] items-center justify-center">
+              <div
+                className="absolute inset-0 opacity-40"
+                style={{
+                  backgroundImage:
+                    "linear-gradient(to right, rgba(17,17,17,0.04) 1px, transparent 1px), linear-gradient(to bottom, rgba(17,17,17,0.04) 1px, transparent 1px)",
+                  backgroundSize: "28px 28px",
+                }}
+              />
+              <div className="relative grid grid-cols-4 gap-2 p-8">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      "h-12 w-12 rounded-lg border border-white/80 shadow-sm md:h-14 md:w-14",
+                      theme.tile,
+                    )}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <h1 className="mt-7 font-display text-3xl font-semibold tracking-tight md:text-4xl">
             {roster.biome.name}
-          </motion.h1>
-          <p className="mt-2 max-w-md text-sm text-white/70">{roster.biome.description}</p>
-          {roster.group && (
-            <p className="mt-2 text-xs text-white/45">
-              {roster.group.name} · <span className="font-mono tracking-widest">{roster.group.code}</span>
-            </p>
-          )}
-        </div>
+          </h1>
+          <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-[#5f6368]">
+            {roster.biome.description}
+          </p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <span className="rounded-full border border-[#e8eaed] bg-[#f7f8fa] px-3 py-1 text-xs font-medium text-[#5f6368]">
+              {roster.biome.themeKey}
+            </span>
+            <span className="rounded-full border border-[#e8eaed] bg-[#f7f8fa] px-3 py-1 text-xs font-medium text-[#5f6368]">
+              {roster.members.length} members
+            </span>
+            <span className="rounded-full border border-[#e8eaed] bg-[#f7f8fa] px-3 py-1 text-xs font-medium text-[#5f6368]">
+              3D biome soon
+            </span>
+          </div>
+        </section>
 
-        <Button
-          type="button"
-          onClick={() => setOpen(true)}
-          className={cn(
-            "h-11 shrink-0 rounded-xl border border-white/20 bg-black/35 px-4 text-white shadow-lg backdrop-blur hover:bg-black/50",
-          )}
-        >
-          <Users className="h-4 w-4" />
-          Members ({roster.members.length})
-        </Button>
-      </header>
+        <aside className="space-y-4">
+          <div className="surface-card p-5">
+            <div className="text-sm font-semibold">Biome info</div>
+            <dl className="mt-4 space-y-3 text-sm">
+              <div className="flex justify-between gap-3">
+                <dt className="text-[#9aa0a6]">Group</dt>
+                <dd className="font-medium">{roster.group?.name ?? "—"}</dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt className="text-[#9aa0a6]">Code</dt>
+                <dd className="font-mono tracking-widest text-[#3b82f6]">
+                  {roster.group?.code ?? "—"}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt className="text-[#9aa0a6]">Theme</dt>
+                <dd className="font-medium capitalize">{roster.biome.themeKey}</dd>
+              </div>
+            </dl>
+          </div>
 
-      <div className="relative z-10 mx-auto mt-10 max-w-lg px-6 text-center">
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.25 }}
-          className="rounded-2xl border border-white/15 bg-black/25 px-5 py-4 text-sm text-white/75 backdrop-blur"
-        >
-          3D Minecraft-style biome coming next. For now this is your matched working-style
-          world — open Members to see everyone paired here.
-        </motion.p>
-      </div>
+          <div className="surface-card p-5">
+            <div className="mb-3 text-sm font-semibold">Members</div>
+            <div className="grid grid-cols-2 gap-2">
+              {roster.members.slice(0, 8).map((m) => (
+                <div
+                  key={m.id}
+                  className="rounded-xl border border-[#e8eaed] bg-[#f7f8fa] px-3 py-3 text-xs font-medium text-[#111]"
+                >
+                  {m.officialName}
+                </div>
+              ))}
+              {roster.members.length === 0 ? (
+                <div className="col-span-2 py-6 text-center text-sm text-[#9aa0a6]">
+                  No one else here yet.
+                </div>
+              ) : null}
+            </div>
+            {roster.members.length > 8 ? (
+              <button
+                type="button"
+                onClick={() => setOpen(true)}
+                className="mt-3 text-sm text-[#3b82f6] hover:underline"
+              >
+                View all {roster.members.length}
+              </button>
+            ) : null}
+          </div>
+        </aside>
+      </main>
 
       <AnimatePresence>
         {open && (
@@ -189,7 +203,7 @@ export default function BiomePage() {
             <motion.button
               type="button"
               aria-label="Close members"
-              className="fixed inset-0 z-40 bg-black/50"
+              className="fixed inset-0 z-40 bg-black/20"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -200,32 +214,23 @@ export default function BiomePage() {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: 40, opacity: 0 }}
               transition={{ type: "spring", stiffness: 320, damping: 28 }}
-              className="fixed right-0 top-0 z-50 flex h-full w-full max-w-sm flex-col border-l border-white/10 bg-[#0b1210]/95 backdrop-blur-xl"
+              className="fixed right-0 top-0 z-50 flex h-full w-full max-w-sm flex-col border-l border-[#e8eaed] bg-white shadow-xl"
             >
-              <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+              <div className="flex items-center justify-between border-b border-[#e8eaed] px-5 py-4">
                 <div>
-                  <div className="text-sm font-medium">Biome members</div>
-                  <div className="text-xs text-white/50">{roster.biome.name}</div>
+                  <div className="text-sm font-semibold">Biome members</div>
+                  <div className="text-xs text-[#9aa0a6]">{roster.biome.name}</div>
                 </div>
                 <Button variant="ghost" size="icon" onClick={() => setOpen(false)}>
                   <X className="h-4 w-4" />
                 </Button>
               </div>
               <ul className="flex-1 space-y-1 overflow-y-auto p-3">
-                {roster.members.length === 0 ? (
-                  <li className="px-3 py-8 text-center text-sm text-white/45">
-                    No one else here yet.
+                {roster.members.map((m) => (
+                  <li key={m.id} className="rounded-xl px-3 py-3 text-sm hover:bg-[#f7f8fa]">
+                    {m.officialName}
                   </li>
-                ) : (
-                  roster.members.map((m) => (
-                    <li
-                      key={m.id}
-                      className="rounded-xl px-3 py-3 text-sm hover:bg-white/5"
-                    >
-                      {m.officialName}
-                    </li>
-                  ))
-                )}
+                ))}
               </ul>
             </motion.aside>
           </>

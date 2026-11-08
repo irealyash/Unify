@@ -1,28 +1,22 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans, Sora } from "next/font/google";
+import { Inter } from "next/font/google";
+import { Auth0Provider } from "@auth0/nextjs-auth0/client";
 import { AppProviders } from "@/components/providers/app-providers";
 import "./globals.css";
 
-const sora = Sora({
-  variable: "--font-display",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const plexSans = IBM_Plex_Sans({
+const inter = Inter({
   variable: "--font-body",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
   display: "swap",
 });
 
 export const metadata: Metadata = {
   title: {
-    default: "Mutual — UBC group project biomes",
+    default: "Mutual — Find your people",
     template: "%s · Mutual",
   },
   description:
-    "Enter a class code, answer a short working-style quiz, and get paired into biomes with classmates who work like you.",
+    "Enter a class code, answer a short working-style quiz, and get paired with classmates who work like you.",
   icons: { icon: "/favicon.ico" },
 };
 
@@ -30,12 +24,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${sora.variable} ${plexSans.variable} h-full`}
+      className={`${inter.variable} h-full`}
       suppressHydrationWarning
       data-scroll-behavior="smooth"
     >
-      <body className="min-h-full antialiased">
-        <AppProviders>{children}</AppProviders>
+      <body className="min-h-full font-sans antialiased">
+        <Auth0Provider>
+          <AppProviders>{children}</AppProviders>
+        </Auth0Provider>
       </body>
     </html>
   );

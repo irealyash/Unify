@@ -45,6 +45,7 @@ export async function GET() {
           officialName: row.participant.officialName,
           biomeId: row.participant.biomeId,
           quizCompletedAt: row.participant.quizCompletedAt,
+          reusedAnswers: row.participant.reusedAnswers,
         },
         group: {
           id: row.group.id,

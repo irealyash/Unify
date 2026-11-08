@@ -12,7 +12,6 @@ import {
   uuid,
   vector,
 } from "drizzle-orm/pg-core";
-
 export const questionTypeEnum = pgEnum("question_type", [
   "multiple_choice",
   "free_text",
@@ -25,6 +24,27 @@ export type QuestionOption = {
   embeddingHint: string;
 };
 
+export type SavedAnswer = {
+  prompt: string;
+  questionType: "multiple_choice" | "free_text";
+  selectedOptionLabel?: string | null;
+  freeTextAnswer?: string | null;
+};
+
+export const users = pgTable(
+  "users",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    auth0Sub: text("auth0_sub").notNull(),
+    email: text("email").notNull().default(""),
+    name: text("name").notNull().default(""),
+    pictureUrl: text("picture_url").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("users_auth0_sub_uidx").on(table.auth0Sub)],
+);
+
 export const groups = pgTable(
   "groups",
   {
@@ -33,12 +53,13 @@ export const groups = pgTable(
     codeNormalized: text("code_normalized").notNull(),
     name: text("name").notNull(),
     description: text("description").notNull().default(""),
+    createdByUserId: uuid("created_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [
-    uniqueIndex("groups_code_normalized_uidx").on(table.codeNormalized),
-  ],
+  (table) => [uniqueIndex("groups_code_normalized_uidx").on(table.codeNormalized)],
 );
 
 export const groupQuestions = pgTable(
@@ -67,7 +88,6 @@ export const biomes = pgTable(
       .references(() => groups.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     description: text("description").notNull().default(""),
-    /** Working-style description used to build the biome centroid embedding */
     styleSummary: text("style_summary").notNull(),
     themeKey: text("theme_key").notNull().default("forest"),
     centroidEmbedding: vector("centroid_embedding", { dimensions: 768 }),
@@ -91,6 +111,7 @@ export const participants = pgTable(
     groupId: uuid("group_id")
       .notNull()
       .references(() => groups.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
     biomeId: uuid("biome_id").references(() => biomes.id, { onDelete: "set null" }),
     officialName: text("official_name").notNull(),
     sessionToken: text("session_token").notNull(),
@@ -99,13 +120,16 @@ export const participants = pgTable(
     embedding: vector("embedding", { dimensions: 768 }),
     embeddingModel: text("embedding_model").notNull().default("gemini-embedding-001"),
     quizCompletedAt: timestamp("quiz_completed_at", { withTimezone: true }),
+    reusedAnswers: boolean("reused_answers").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex("participants_session_token_uidx").on(table.sessionToken),
+    uniqueIndex("participants_group_user_uidx").on(table.groupId, table.userId),
     index("participants_group_idx").on(table.groupId),
     index("participants_biome_idx").on(table.biomeId),
+    index("participants_user_idx").on(table.userId),
     index("participants_embedding_idx").using(
       "hnsw",
       table.embedding.op("vector_cosine_ops"),
@@ -135,6 +159,33 @@ export const participantAnswers = pgTable(
   ],
 );
 
+/** Durable quiz answers keyed by question-set fingerprint so identical quizzes can be skipped. */
+export const userAnswerProfiles = pgTable(
+  "user_answer_profiles",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    fingerprint: text("fingerprint").notNull(),
+    answers: jsonb("answers").$type<SavedAnswer[]>().notNull().default(sql`'[]'::jsonb`),
+    workingStyleText: text("working_style_text").notNull().default(""),
+    embedding: vector("embedding", { dimensions: 768 }),
+    embeddingModel: text("embedding_model").notNull().default("gemini-embedding-001"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("user_answer_profiles_user_fp_uidx").on(table.userId, table.fingerprint),
+    index("user_answer_profiles_user_idx").on(table.userId),
+  ],
+);
+
+export const usersRelations = relations(users, ({ many }) => ({
+  participants: many(participants),
+  answerProfiles: many(userAnswerProfiles),
+}));
+
 export const groupsRelations = relations(groups, ({ many }) => ({
   questions: many(groupQuestions),
   biomes: many(biomes),
@@ -148,10 +199,12 @@ export const biomesRelations = relations(biomes, ({ one, many }) => ({
 
 export const participantsRelations = relations(participants, ({ one, many }) => ({
   group: one(groups, { fields: [participants.groupId], references: [groups.id] }),
+  user: one(users, { fields: [participants.userId], references: [users.id] }),
   biome: one(biomes, { fields: [participants.biomeId], references: [biomes.id] }),
   answers: many(participantAnswers),
 }));
 
+export type User = typeof users.$inferSelect;
 export type Group = typeof groups.$inferSelect;
 export type GroupQuestion = typeof groupQuestions.$inferSelect;
 export type Biome = typeof biomes.$inferSelect;

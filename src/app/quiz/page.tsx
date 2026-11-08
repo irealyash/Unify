@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { SiteHeader } from "@/components/layout/site-header";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,6 +43,12 @@ export default function QuizPage() {
     let cancelled = false;
     (async () => {
       try {
+        const me = await fetch("/api/me").then((r) => r.json());
+        if (!me.user) {
+          window.location.href = `/auth/login?connection=google-oauth2&returnTo=${encodeURIComponent("/quiz")}`;
+          return;
+        }
+
         const res = await fetch("/api/session");
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to load session");
@@ -115,91 +122,139 @@ export default function QuizPage() {
 
   if (loading || !session) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
-        Loading quiz…
+      <div className="min-h-screen bg-[#f7f8fa]">
+        <SiteHeader />
+        <div className="flex items-center justify-center py-32 text-sm text-[#9aa0a6]">
+          Loading quiz…
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto min-h-screen max-w-2xl px-6 py-10">
-      <div className="mb-8">
-        <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
-          ← Change code
-        </Link>
-        <h1 className="mt-3 font-display text-3xl font-semibold tracking-tight">
-          Working style quiz
-        </h1>
-        <p className="mt-2 text-muted-foreground">
-          {session.participant.officialName} · {session.group.name}{" "}
-          <span className="font-mono text-xs tracking-widest">({session.group.code})</span>
-        </p>
-        <div className="mt-5 h-2 overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-foreground transition-all duration-500"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-      </div>
+    <div className="min-h-screen bg-[#f7f8fa]">
+      <SiteHeader />
+      <main className="mx-auto grid w-full max-w-6xl gap-6 px-5 py-8 md:grid-cols-[1.45fr_0.85fr] md:px-8">
+        <section className="surface-card p-6 md:p-8">
+          <div className="text-xs text-[#9aa0a6]">
+            Home <span className="mx-1.5 text-[#c4c7cc]">/</span> {session.group.code}{" "}
+            <span className="mx-1.5 text-[#c4c7cc]">/</span> Quiz
+          </div>
+          <h1 className="mt-4 font-display text-3xl font-semibold tracking-tight">
+            Working style quiz
+          </h1>
+          <p className="mt-2 text-sm text-[#5f6368]">
+            {session.participant.officialName} · {session.group.name}
+          </p>
+          <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-[#eceff3]">
+            <div
+              className="h-full rounded-full bg-[#111] transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
 
-      <form onSubmit={onSubmit} className="space-y-8">
-        {session.questions.map((q, index) => (
-          <fieldset key={q.id} className="space-y-3 rounded-2xl border border-border p-5">
-            <legend className="px-1 text-sm font-medium">
-              {index + 1}. {q.prompt}
-              {q.required ? "" : " (optional)"}
-            </legend>
+          <form onSubmit={onSubmit} className="mt-8 space-y-5">
+            {session.questions.map((q, index) => (
+              <fieldset key={q.id} className="rounded-2xl border border-[#eceff3] bg-[#fafbfc] p-5">
+                <legend className="px-1 text-sm font-semibold text-[#111]">
+                  {index + 1}. {q.prompt}
+                  {!q.required ? (
+                    <span className="ml-1 font-normal text-[#9aa0a6]">(optional)</span>
+                  ) : null}
+                </legend>
 
-            {q.questionType === "multiple_choice" ? (
-              <div className="grid gap-2">
-                {q.options.map((opt) => {
-                  const selected = answers[q.id]?.selectedOptionId === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() =>
+                {q.questionType === "multiple_choice" ? (
+                  <div className="mt-3 grid gap-2">
+                    {q.options.map((opt) => {
+                      const selected = answers[q.id]?.selectedOptionId === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() =>
+                            setAnswers((prev) => ({
+                              ...prev,
+                              [q.id]: { selectedOptionId: opt.id },
+                            }))
+                          }
+                          className={cn(
+                            "rounded-xl border px-4 py-3 text-left text-sm transition",
+                            selected
+                              ? "border-[#111] bg-[#111] text-white"
+                              : "border-[#e8eaed] bg-white text-[#111] hover:border-[#c4c7cc]",
+                          )}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="mt-3 space-y-2">
+                    <Label htmlFor={q.id}>Additional notes</Label>
+                    <Textarea
+                      id={q.id}
+                      rows={4}
+                      value={answers[q.id]?.freeTextAnswer ?? ""}
+                      onChange={(e) =>
                         setAnswers((prev) => ({
                           ...prev,
-                          [q.id]: { selectedOptionId: opt.id },
+                          [q.id]: { freeTextAnswer: e.target.value },
                         }))
                       }
-                      className={cn(
-                        "rounded-xl border px-4 py-3 text-left text-sm transition",
-                        selected
-                          ? "border-foreground bg-foreground text-background"
-                          : "border-border hover:border-foreground/40 hover:bg-muted/50",
-                      )}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Label htmlFor={q.id}>Your notes</Label>
-                <Textarea
-                  id={q.id}
-                  rows={4}
-                  value={answers[q.id]?.freeTextAnswer ?? ""}
-                  onChange={(e) =>
-                    setAnswers((prev) => ({
-                      ...prev,
-                      [q.id]: { freeTextAnswer: e.target.value },
-                    }))
-                  }
-                  placeholder="Schedules, strengths, anything teammates should know…"
-                />
-              </div>
-            )}
-          </fieldset>
-        ))}
+                      className="rounded-xl border-[#e8eaed] bg-white"
+                      placeholder="Schedules, strengths, anything teammates should know…"
+                    />
+                  </div>
+                )}
+              </fieldset>
+            ))}
 
-        <Button type="submit" disabled={submitting} className="h-11 w-full sm:w-auto sm:px-8">
-          {submitting ? "Matching into a biome…" : "Find my biome"}
-        </Button>
-      </form>
+            <Button
+              type="submit"
+              disabled={submitting}
+              className="h-11 rounded-full bg-[#111] px-8 text-white hover:bg-[#222]"
+            >
+              {submitting ? "Matching into a biome…" : "Find my biome"}
+            </Button>
+          </form>
+        </section>
+
+        <aside className="space-y-4">
+          <div className="surface-card p-5">
+            <div className="text-sm font-semibold">Quiz details</div>
+            <dl className="mt-4 space-y-3 text-sm">
+              <div className="flex justify-between gap-3">
+                <dt className="text-[#9aa0a6]">Group</dt>
+                <dd className="font-medium">{session.group.name}</dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt className="text-[#9aa0a6]">Code</dt>
+                <dd className="font-mono tracking-widest text-[#3b82f6]">
+                  {session.group.code}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt className="text-[#9aa0a6]">Questions</dt>
+                <dd className="font-medium">{session.questions.length}</dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt className="text-[#9aa0a6]">Progress</dt>
+                <dd className="font-medium">{progress}%</dd>
+              </div>
+            </dl>
+          </div>
+          <div className="surface-card p-5 text-sm text-[#5f6368]">
+            Answers are saved to your Google account. If another group uses the same
+            questions, Mutual reuses these answers automatically.
+            <div className="mt-4">
+              <Link href="/" className="text-[#3b82f6] hover:underline">
+                ← Change code
+              </Link>
+            </div>
+          </div>
+        </aside>
+      </main>
     </div>
   );
 }
