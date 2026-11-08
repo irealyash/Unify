@@ -2,7 +2,11 @@ import { ArrowRight, PencilLine } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
-import { MAX_NAME_LENGTH, ROOM_CODE_LENGTH, normalizeRoomCode } from "@unify/shared";
+import {
+  MAX_NAME_LENGTH,
+  ROOM_CODE_LENGTH,
+  normalizeRoomCode,
+} from "@unify/shared";
 import { BookmarkTag } from "@/components/BookmarkTag";
 import { GoogleAuthButton } from "@/components/GoogleAuthButton";
 import { PaperNote } from "@/components/PaperNote";
@@ -31,7 +35,9 @@ export function HomePage() {
   const [code, setCode] = useState(() => roomCodeFromSearch(params));
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
-  const [focusedField, setFocusedField] = useState<"code" | "name" | null>(null);
+  const [focusedField, setFocusedField] = useState<"code" | "name" | null>(
+    null,
+  );
 
   useEffect(() => {
     if (user?.name && !name) setName(user.name);
@@ -82,11 +88,18 @@ export function HomePage() {
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary font-display text-sm font-bold text-primary-foreground">
             U
           </span>
-          <span className="text-[15px] font-semibold tracking-tight">Unify</span>
+          <span className="text-[15px] font-semibold tracking-tight">
+            Unify
+          </span>
         </Link>
         <div className="group relative">
           <BookmarkTag className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[125px] w-[166px] origin-top -translate-x-1/2 -translate-y-1/2 transition-transform duration-300 ease-in group-hover:scale-y-125" />
-          <Button asChild variant="ghost" size="sm" className="text-xl hover:bg-transparent">
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className="text-xl hover:bg-transparent"
+          >
             <Link to="/host">Host Room</Link>
           </Button>
         </div>
@@ -97,7 +110,9 @@ export function HomePage() {
           <h1 className="font-display text-[clamp(2.25rem,9vw,3.25rem)] font-semibold leading-[0.95] tracking-[-0.04em]">
             unify
           </h1>
-          <p className="mt-3 text-balance text-muted-foreground">Your best team starts here</p>
+          <p className="mt-3 text-balance text-muted-foreground">
+            Your best team starts here
+          </p>
         </PaperNote>
 
         <form onSubmit={onJoin} className="mt-10 space-y-4">
