@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { request } from "@/lib/socket";
+import { CREDITS } from "@/credits";
 import { playerStorage } from "@/lib/storage";
 
 export function HomePage() {
@@ -53,9 +54,17 @@ export function HomePage() {
           </span>
           <span className="text-[15px] font-semibold tracking-tight">Unify</span>
         </Link>
-        <Button asChild variant="outline" size="sm">
-          <Link to="/host">Host a room</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* TEMP (testing): jump straight into The City scene. Dev builds only. */}
+          {import.meta.env.DEV ? (
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/preview/night_city">Go to The City</Link>
+            </Button>
+          ) : null}
+          <Button asChild variant="outline" size="sm">
+            <Link to="/host">Host a room</Link>
+          </Button>
+        </div>
       </header>
 
       <main className="relative z-10 mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-md flex-col justify-center px-6 pb-16">
@@ -100,6 +109,18 @@ export function HomePage() {
           </Button>
         </form>
       </main>
+
+      <footer className="relative z-10 px-6 pb-5 text-center text-xs text-muted-foreground">
+        {CREDITS.map((c) => (
+          <p key={c.url}>
+            3D model:{" "}
+            <a href={c.url} target="_blank" rel="noreferrer" className="underline-offset-2 hover:underline">
+              {c.work}
+            </a>{" "}
+            by {c.author} ({c.license}) via {c.source}
+          </p>
+        ))}
+      </footer>
     </div>
   );
 }

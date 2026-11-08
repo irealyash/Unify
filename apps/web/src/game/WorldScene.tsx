@@ -1,13 +1,14 @@
 import { Grid, Stars } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Bloom, EffectComposer, ToneMapping } from "@react-three/postprocessing";
 import { ToneMappingMode } from "postprocessing";
-import { Vector3, type PerspectiveCamera } from "three";
+import { Object3D, Vector3, type DirectionalLight, type PerspectiveCamera } from "three";
 import {
   BIOMES,
   LOBBY_AREA,
   biomeArea,
+  biomesExtent,
   playerArea,
   type Area,
   type BiomeDef,
@@ -15,7 +16,10 @@ import {
   type PlayerState,
   type Stage,
 } from "@unify/shared";
-import { NightCity } from "./biomes/NightCity";
+import { TokyoTown } from "./biomes/TokyoTown";
+import { tokyoTownObstacles } from "./biomes/tokyoTownMap";
+import type { Rect } from "./collision";
+import type { CameraRig } from "./LocalPlayer";
 import { LocalPlayer } from "./LocalPlayer";
 import { damp } from "./math";
 import { NameTag } from "./NameTag";
@@ -25,12 +29,68 @@ import { useRoom } from "./store";
 const WALL_HEIGHT = 1.2;
 const WALL_THICKNESS = 0.4;
 const BG = "#f3f4f7";
-const NIGHT_BG = "#070816";
+
+/** Sky, fog and lights. The lobby, the host overview and plain biomes use DEFAULT_ENV. */
+type Environment = {
+  background: string;
+  fog: [color: string, near: number, far: number];
+  hemisphere: [sky: string, ground: string, intensity: number];
+  sun: { color: string; intensity: number; shadows: boolean };
+  /** Optional extras for night scenes. */
+  stars?: boolean;
+  bloom?: boolean;
+};
+
+const DEFAULT_ENV: Environment = {
+  background: BG,
+  fog: [BG, 30, 70],
+  hemisphere: ["#ffffff", "#dfe2e8", 1.4],
+  sun: { color: "#ffffff", intensity: 1.6, shadows: true },
+};
+
+/** What a player standing in each biome sees. */
+const BIOME_ENVS: Partial<Record<BiomeId, Environment>> = {
+  // Daytime city: clear sky, light haze on the horizon, warm sun with shadows.
+  night_city: {
+    background: "#bcdcf5",
+    // Matches the sky near the horizon so the far ground and hills melt into it.
+    fog: ["#d3e3ec", 45, 230],
+    hemisphere: ["#ffffff", "#c9c0a8", 1.15],
+    sun: { color: "#fff3df", intensity: 2.3, shadows: true },
+  },
+};
+
+type BiomeSceneProps = {
+  area: Area;
+  /** A player is standing inside (vs. the host's overview): draw the full, endless version. */
+  immersive?: boolean;
+};
 
 /** Biomes with a finished themed scene. Others fall back to a plain tinted room. */
-const BIOME_SCENES: Partial<Record<BiomeId, (props: { area: Area }) => React.JSX.Element>> = {
-  night_city: NightCity,
+const BIOME_SCENES: Partial<Record<BiomeId, (props: BiomeSceneProps) => React.JSX.Element>> = {
+  night_city: TokyoTown,
 };
+
+/** Solid footprints (world space) the local player collides with, per biome. */
+const BIOME_OBSTACLES: Partial<Record<BiomeId, (area: Area) => Rect[]>> = {
+  night_city: (a) => tokyoTownObstacles(a.cx, a.cz),
+};
+const obstacleCache = new Map<BiomeId, Rect[]>();
+
+/** Biomes whose scenery wants a different follow camera (e.g. a lower view down city streets). */
+const BIOME_CAMERAS: Partial<Record<BiomeId, CameraRig>> = {
+  night_city: { height: 7, distance: 10, lookHeight: 1.8 },
+};
+function obstaclesFor(biome: BiomeId): Rect[] | undefined {
+  const build = BIOME_OBSTACLES[biome];
+  if (!build) return undefined;
+  let rects = obstacleCache.get(biome);
+  if (!rects) {
+    rects = build(biomeArea(biome));
+    obstacleCache.set(biome, rects);
+  }
+  return rects;
+}
 
 type WorldSceneProps = {
   /** When set, this player is controlled by WASD and followed by the camera. */
@@ -62,10 +122,12 @@ export function WorldScene({ selfId, spectator, frozen }: WorldSceneProps) {
     return spectator || p.placement.biome === self?.placement?.biome;
   });
 
-  const shadowExtent = inBiomes && spectator ? 48 : 22;
-  // Players standing in Night City see it at night; the host's overview stays in daylight.
-  const night = inBiomes && !spectator && self?.placement?.biome === "night_city";
-  const background = night ? NIGHT_BG : BG;
+  const shadowExtent = inBiomes && spectator ? 70 : 22;
+  // Players see their biome's own sky and lighting; the host's overview uses the default.
+  const myBiome = inBiomes && !spectator ? self?.placement?.biome : undefined;
+  const env = (myBiome && BIOME_ENVS[myBiome]) || DEFAULT_ENV;
+  // Keep the sun's shadows centered on whatever this viewer is looking at.
+  const focus = myBiome ? biomeArea(myBiome) : { cx: 0, cz: 0 };
 
   return (
     <Canvas
@@ -74,32 +136,13 @@ export function WorldScene({ selfId, spectator, frozen }: WorldSceneProps) {
       camera={{ position: spectator ? [0, 26, 22] : [0, 9, 11], fov: spectator ? 45 : 50 }}
       onCreated={({ camera }) => camera.lookAt(0, 0, 0)}
     >
-      <color attach="background" args={[background]} />
-      <fog
-        attach="fog"
-        args={spectator ? [BG, 90, 200] : night ? [NIGHT_BG, 24, 62] : [BG, 30, 70]}
-      />
-
-      {night ? (
-        <>
-          <hemisphereLight args={["#6a7bff", "#151833", 0.85]} />
-          <Stars radius={90} depth={40} count={2500} factor={3.5} saturation={0.4} fade speed={0.4} />
-        </>
-      ) : (
-        <hemisphereLight args={["#ffffff", "#dfe2e8", 1.4]} />
-      )}
-      <directionalLight
-        key={`${shadowExtent}:${night}`}
-        position={[10, 18, 8]}
-        color={night ? "#9fb4ff" : "#ffffff"}
-        intensity={night ? 0.55 : 1.6}
-        castShadow
-        shadow-mapSize={[2048, 2048]}
-        shadow-camera-left={-shadowExtent}
-        shadow-camera-right={shadowExtent}
-        shadow-camera-top={shadowExtent}
-        shadow-camera-bottom={-shadowExtent}
-      />
+      <color attach="background" args={[env.background]} />
+      <fog attach="fog" args={spectator ? [BG, 120, 260] : env.fog} />
+      <hemisphereLight args={env.hemisphere} />
+      {env.stars ? (
+        <Stars radius={170} depth={50} count={3000} factor={5} saturation={0.4} fade speed={0.4} />
+      ) : null}
+      <Sun focusX={focus.cx} focusZ={focus.cz} extent={shadowExtent} {...env.sun} />
 
       {spectator ? <SpectatorCamera wide={inBiomes} /> : null}
 
@@ -107,7 +150,7 @@ export function WorldScene({ selfId, spectator, frozen }: WorldSceneProps) {
         biomes.map((b) => {
           const Scene = BIOME_SCENES[b.id];
           return Scene ? (
-            <Scene key={b.id} area={biomeArea(b.id)} />
+            <Scene key={b.id} area={biomeArea(b.id)} immersive={!spectator} />
           ) : (
             <Room
               key={b.id}
@@ -126,7 +169,7 @@ export function WorldScene({ selfId, spectator, frozen }: WorldSceneProps) {
 
       {visible.map((p) => renderPlayer(p, { selfId, spectator, frozen, stage }))}
 
-      {night ? (
+      {env.bloom ? (
         // Neon and lit windows (colors pushed above 1.0) glow; everything else is untouched.
         <EffectComposer>
           <Bloom mipmapBlur luminanceThreshold={1} luminanceSmoothing={0.2} intensity={0.85} />
@@ -134,6 +177,49 @@ export function WorldScene({ selfId, spectator, frozen }: WorldSceneProps) {
         </EffectComposer>
       ) : null}
     </Canvas>
+  );
+}
+
+/** Directional sun aimed at (and casting shadows around) the area being viewed. */
+function Sun({
+  focusX,
+  focusZ,
+  extent,
+  color,
+  intensity,
+  shadows,
+}: {
+  focusX: number;
+  focusZ: number;
+  extent: number;
+  color: string;
+  intensity: number;
+  shadows: boolean;
+}) {
+  const light = useRef<DirectionalLight>(null);
+  const target = useMemo(() => new Object3D(), []);
+  useEffect(() => {
+    target.position.set(focusX, 0, focusZ);
+    target.updateMatrixWorld();
+    if (light.current) light.current.target = target;
+  }, [target, focusX, focusZ]);
+  return (
+    <directionalLight
+      ref={light}
+      key={`${extent}:${focusX}:${focusZ}`}
+      position={[focusX + 14, 24, focusZ + 10]}
+      color={color}
+      intensity={intensity}
+      castShadow={shadows}
+      shadow-mapSize={[2048, 2048]}
+      shadow-bias={-0.0004}
+      shadow-normalBias={0.03}
+      shadow-camera-left={-extent}
+      shadow-camera-right={extent}
+      shadow-camera-top={extent}
+      shadow-camera-bottom={-extent}
+      shadow-camera-far={80}
+    />
   );
 }
 
@@ -150,6 +236,8 @@ function renderPlayer(
         key={`${p.id}:${stage}:${p.placement?.biome ?? ""}`}
         player={p}
         area={area}
+        obstacles={stage === "biomes" && p.placement ? obstaclesFor(p.placement.biome) : undefined}
+        rig={stage === "biomes" && p.placement ? BIOME_CAMERAS[p.placement.biome] : undefined}
         frozen={ctx.frozen || ctx.stage === "sorting"}
       />
     );
@@ -166,19 +254,9 @@ function renderPlayer(
 /** Width and depth (world units) the host camera must fit, including walls. */
 function worldExtent(wide: boolean) {
   if (!wide) return { width: LOBBY_AREA.half * 2 + 2, depth: LOBBY_AREA.half * 2 + 2 };
-  const first = biomeArea(BIOMES[0]!.id);
-  const last = biomeArea(BIOMES[BIOMES.length - 1]!.id);
-  return {
-    width: last.cx - first.cx + BIOME_VISUAL_HALF * 2,
-    depth: BIOME_VISUAL_HALF * 2,
-  };
+  const { minX, maxX, halfDepth } = biomesExtent();
+  return { width: maxX - minX, depth: halfDepth * 2, centerX: (minX + maxX) / 2 };
 }
-
-/**
- * How far a biome's scenery (ground, buildings, trees) reaches from its center. Larger than
- * the walkable area; biome scenes should stay within this so they don't overlap neighbours.
- */
-const BIOME_VISUAL_HALF = 21;
 
 /** Viewing direction for the host camera: high and slightly in front. */
 const SPECTATOR_DIRECTION = new Vector3(0, 1, 0.85).normalize();

@@ -6,6 +6,7 @@ import {
   PLAYER_COLORS,
   biomeArea,
   isBiomeId,
+  spawnOffset,
   type PlayerState,
 } from "@unify/shared";
 import { useRoom } from "@/game/store";
@@ -21,24 +22,26 @@ export function PreviewPage() {
   const biomeParam = useParams().biome;
   const [params] = useSearchParams();
   const hostView = params.get("view") === "host";
+  // ?at=x,z puts you at a spot (relative to the biome center), e.g. ?at=0,-12.
+  const at = params.get("at")?.split(",").map(Number);
+  const start = at && at.length === 2 && at.every(Number.isFinite) ? { x: at[0]!, z: at[1]! } : null;
   const biome = isBiomeId(biomeParam) ? biomeParam : BIOMES[0]!.id;
 
   useEffect(() => {
     const players: PlayerState[] = [];
-    // Everyone gets a group: you plus a few dummies in each biome.
+    // Just you in the previewed biome; a few dummies elsewhere so the host view isn't empty.
     for (const b of BIOMES) {
       const area = biomeArea(b.id);
-      const count = b.id === biome ? 5 : 3;
+      const count = b.id === biome ? 1 : 3;
       for (let i = 0; i < count; i++) {
         const isSelf = b.id === biome && i === 0;
-        const angle = i * 2.4;
-        const radius = isSelf ? 0 : 2 + Math.sqrt(i) * 1.4;
+        const spot = spawnOffset(b.id, i);
         players.push({
           id: isSelf ? SELF_ID : `dummy-${b.id}-${i}`,
           name: isSelf ? "Preview" : `${b.name.split(" ")[0]} ${i}`,
           color: PLAYER_COLORS[(i + (b.id === biome ? 0 : 4)) % PLAYER_COLORS.length]!,
-          x: area.cx + Math.cos(angle) * radius,
-          z: area.cz + 3 + Math.sin(angle) * radius,
+          x: area.cx + (isSelf && start ? start.x : spot.x),
+          z: area.cz + (isSelf && start ? start.z : spot.z),
           rotY: 0,
           connected: true,
           quiz: "ready",
@@ -49,7 +52,7 @@ export function PreviewPage() {
     const { applySnapshot, reset } = useRoom.getState();
     applySnapshot({ code: "PREVIEW", stage: "biomes", players }, hostView ? null : SELF_ID);
     return () => reset();
-  }, [biome, hostView]);
+  }, [biome, hostView, start?.x, start?.z]);
 
   return (
     <div className="relative h-full bg-[#070816]">

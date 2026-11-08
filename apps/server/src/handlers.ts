@@ -9,6 +9,7 @@ import {
   clampToArea,
   normalizeRoomCode,
   playerArea,
+  spawnOffset,
   validateAnswers,
   type Ack,
   type ClientToServerEvents,
@@ -380,10 +381,10 @@ async function runSort(io: IO, room: Room) {
     const area = biomeArea(placement.biome);
     const slot = placedPerBiome.get(placement.biome) ?? 0;
     placedPerBiome.set(placement.biome, slot + 1);
-    const angle = slot * 2.4;
-    const radius = 2 + Math.sqrt(slot) * 1.4;
-    player.x = area.cx + Math.cos(angle) * radius;
-    player.z = area.cz + Math.sin(angle) * radius;
+    // Open spots from the biome's map (clients also nudge anyone who'd overlap a wall).
+    const spot = spawnOffset(placement.biome, slot);
+    player.x = area.cx + spot.x;
+    player.z = area.cz + spot.z;
     player.rotY = 0;
     room.dirty.delete(player.id);
     persist.placement(room.id, player.id, placement);

@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
+    "footprints": "tsx scripts/model-footprints.mts public/models/tokyo-tower.glb ../../packages/shared/src/maps/tokyoTown.json"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.17",

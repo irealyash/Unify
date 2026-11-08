@@ -19,12 +19,19 @@ export type BiomeDef = {
   answerHints: Record<string, string[]>;
   /** Placeholder palette for the plain phase-3 rooms (phase 4 builds the real scenes). */
   colors: { floor: string; wall: string; accent: string };
+  /** How far players may walk from the center (half-width of a square). */
+  walkHalf: number;
+  /**
+   * How far the scenery the host sees reaches from the center. Biomes are laid out side by
+   * side using this so their scenery never overlaps.
+   */
+  visualHalf: number;
 };
 
 export const BIOMES: BiomeDef[] = [
   {
     id: "night_city",
-    name: "Night City",
+    name: "The City",
     tagline: "Fast-paced, ambitious, always on.",
     profile:
       "This student starts work right away and moves fast, finishing well ahead of deadlines with time left to improve it. They are aiming for an A or A+ and treat this project as a top priority. They want an active group chat with quick replies and frequent meetings to keep momentum high. They put in long hours, often into the evening, and naturally take charge as an organizer or a heavy-lifting builder. They expect teammates to hold a high bar, pull equal weight and respond quickly.",
@@ -38,6 +45,9 @@ export const BIOMES: BiomeDef[] = [
       expectations: ["high_bar", "reliable"],
     },
     colors: { floor: "#eceefe", wall: "#c9ccf5", accent: "#5b5ce2" },
+    // The "Tokyo Tower" town model, about 34 × 34 world units; players stay just inside it.
+    walkHalf: 16.6,
+    visualHalf: 18,
   },
   {
     id: "highlands",
@@ -55,6 +65,8 @@ export const BIOMES: BiomeDef[] = [
       expectations: ["chill", "done"],
     },
     colors: { floor: "#eaf5ec", wall: "#c3e2c9", accent: "#2f9e57" },
+    walkHalf: 12,
+    visualHalf: 21,
   },
 ];
 
@@ -89,15 +101,37 @@ export type Placement = {
 /** A square walkable area in world space. */
 export type Area = { cx: number; cz: number; half: number };
 
-/** Half-width of each biome area. */
-export const BIOME_HALF_SIZE = 12;
-/** Distance between biome centers (they sit side by side, far from each other). */
-const BIOME_SPACING = 40;
+/** Empty space between neighbouring biomes' scenery. */
+const BIOME_GAP = 6;
 
+/** Biome centers along x: side by side, each as wide as its scenery, centered on 0. */
+const BIOME_CENTERS: Map<BiomeId, number> = (() => {
+  const total =
+    BIOMES.reduce((sum, b) => sum + b.visualHalf * 2, 0) + BIOME_GAP * (BIOMES.length - 1);
+  const centers = new Map<BiomeId, number>();
+  let left = -total / 2;
+  for (const b of BIOMES) {
+    centers.set(b.id, left + b.visualHalf);
+    left += b.visualHalf * 2 + BIOME_GAP;
+  }
+  return centers;
+})();
+
+/** The walkable square of a biome, in world space. */
 export function biomeArea(id: BiomeId): Area {
-  const index = BIOMES.findIndex((b) => b.id === id);
-  const offset = (index - (BIOMES.length - 1) / 2) * BIOME_SPACING;
-  return { cx: offset, cz: 0, half: BIOME_HALF_SIZE };
+  const biome = BIOME_BY_ID.get(id)!;
+  return { cx: BIOME_CENTERS.get(id)!, cz: 0, half: biome.walkHalf };
+}
+
+/** World-space x range covered by all biome scenery, and the deepest biome's half-depth. */
+export function biomesExtent() {
+  const first = BIOMES[0]!;
+  const last = BIOMES[BIOMES.length - 1]!;
+  return {
+    minX: BIOME_CENTERS.get(first.id)! - first.visualHalf,
+    maxX: BIOME_CENTERS.get(last.id)! + last.visualHalf,
+    halfDepth: Math.max(...BIOMES.map((b) => b.visualHalf)),
+  };
 }
 
 export function clampToArea(area: Area, x: number, z: number) {
